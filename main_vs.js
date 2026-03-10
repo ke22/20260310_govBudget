@@ -49,7 +49,7 @@ let chartMilMndRatio = null, chartMilUnitRatio = null, chartMilMndCat = null, ch
 
 const categoryColorMap = {
     '社會福利': '#ce696d',
-    '教育科學文化': '#F0C808',
+    '教育科學文化': '#7a9fcf',
     '國防': '#97b1de',
     '經濟發展': '#5591bf',
     '一般政務': '#315493',
@@ -59,6 +59,85 @@ const categoryColorMap = {
     '社區發展及環境保護': '#1c1c1e',
     '其他': '#8e8e93'
 };
+
+// Multi-page detection: which page are we on?
+const currentPage = (() => {
+    const cl = document.body.classList;
+    if (cl.contains('page-budget')) return 'budget';
+    if (cl.contains('page-legislators')) return 'legislators';
+    if (cl.contains('page-other')) return 'other';
+    return 'overview';
+})();
+
+function initFloatNavCollapseMenu() {
+    const nav = document.querySelector('.js-float-nav');
+    if (!nav) return;
+
+    const seg = nav.querySelector('.float-nav__seg');
+    const btn = nav.querySelector('.js-float-nav-menuBtn');
+    if (!seg || !btn) return;
+
+    const closeMenu = () => {
+        nav.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+    };
+
+    const openMenu = () => {
+        nav.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+    };
+
+    const toggleMenu = () => {
+        if (!nav.classList.contains('is-collapsed')) return;
+        if (nav.classList.contains('is-open')) closeMenu();
+        else openMenu();
+    };
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!nav.classList.contains('is-open')) return;
+        if (!nav.contains(e.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (nav.classList.contains('is-open')) closeMenu();
+    });
+
+    const mq = window.matchMedia ? window.matchMedia('(max-width: 560px)') : null;
+
+    const updateCollapsed = () => {
+        const overflow = seg.scrollWidth > (seg.clientWidth + 1);
+        const shouldCollapse = overflow || (mq ? mq.matches : false);
+
+        if (shouldCollapse) {
+            nav.classList.add('is-collapsed');
+        } else {
+            nav.classList.remove('is-collapsed');
+            closeMenu();
+        }
+    };
+
+    if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => updateCollapsed());
+        ro.observe(seg);
+        ro.observe(nav);
+    }
+
+    window.addEventListener('resize', updateCollapsed, { passive: true });
+    if (mq && typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', updateCollapsed);
+    } else if (mq && typeof mq.addListener === 'function') {
+        mq.addListener(updateCollapsed);
+    }
+
+    updateCollapsed();
+}
 
 function isCaucusName(name) {
     return typeof name === 'string' && name.includes('黨團');
@@ -229,10 +308,10 @@ function updateBudgetPageReview() {
 
     // 更新文字說明
     captionEl.innerHTML = `
-        <span style="color:#315493; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
+        <span style="color:#1b9431; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
         通過：<b>${pctPass}%</b> | 
         <span style="color:#c63f3f">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> | 
-        <span style="color:#F0C808">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
+        <span style="color:#5591bf">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
     `;
 
     // 繪製圖表
@@ -244,8 +323,8 @@ function updateBudgetPageReview() {
         data: {
             labels: ['審查結果'],
             datasets: [
-                { label: '通過', data: [totalPass], backgroundColor: '#315493', barThickness: 50 },
-                { label: '凍結', data: [totalFreeze], backgroundColor: '#F0C808', barThickness: 50 },
+                { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 50 },
+                { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 50 },
                 { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 50 }
             ]
         },
@@ -326,7 +405,7 @@ function renderDetailChartsA(row) {
             labels: pieLabels,
             datasets: [{
                 data: pieData,
-                backgroundColor: ['#c63f3f', '#F0C808', '#315493', '#5591bf', '#97b1de']
+                backgroundColor: ['#c63f3f', '#7a9fcf', '#315493', '#5591bf', '#97b1de']
             }]
         },
         options: {
@@ -454,7 +533,7 @@ function renderDetailChartsB(row) {
 
     const ctx1 = document.querySelector(".js-chartBResult").getContext('2d');
     if (chartB1) chartB1.destroy();
-    chartB1 = new Chart(ctx1, { type: 'bar', data: { labels: ['結果'], datasets: [{ label: '通過', data: [pass], backgroundColor: '#315493' }, { label: '凍結', data: [freeze], backgroundColor: '#F0C808' }, { label: '刪減', data: [cut], backgroundColor: '#c63f3f' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }, plugins: { tooltip: tooltipCurrencyCallback } } });
+    chartB1 = new Chart(ctx1, { type: 'bar', data: { labels: ['結果'], datasets: [{ label: '通過', data: [pass], backgroundColor: '#1b9431' }, { label: '凍結', data: [freeze], backgroundColor: '#5591bf' }, { label: '刪減', data: [cut], backgroundColor: '#c63f3f' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }, plugins: { tooltip: tooltipCurrencyCallback } } });
 
     const cCut = parseMoney(row['委員會刪減']);
     const cFreeze = parseMoney(row['委員會凍結']);
@@ -468,14 +547,28 @@ function renderDetailChartsB(row) {
     chartB2 = new Chart(ctx2, {
         type: 'bar', data: {
             labels: ['委員會', '院會表決', '通案'],
-            datasets: [{ label: '刪減', data: [cCut, nCut, fCut], backgroundColor: '#c63f3f' }, { label: '凍結', data: [cFreeze, nFreeze, fFreeze], backgroundColor: '#F0C808' }]
+            datasets: [{ label: '刪減', data: [cCut, nCut, fCut], backgroundColor: '#c63f3f' }, { label: '凍結', data: [cFreeze, nFreeze, fFreeze], backgroundColor: '#5591bf' }]
         }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tooltipCurrencyCallback } }
     });
 }
 
 function renderMainCharts() {
     if (mainChartsRendered) return;
-    new Chart(document.querySelector(".js-chartYearly").getContext('2d'), { type: 'bar', data: { labels: ['115年度', '114年度', '113年度', '112年度', '111年度', '110年度', '109年度', '108年度', '107年度', '106年度'], datasets: [{ label: '歲出總額', data: [3034974371000, 3132468909000, 2881782095000, 2719098790000, 2262064189000, 2161517070000, 2102196982000, 2022029637000, 1991773071000, 1997995520000], backgroundColor: '#315493' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tooltipCurrencyCallback }, scales: { y: { ticks: { callback: function (value) { return formatCurrency(value); } } } } } });
+    new Chart(document.querySelector(".js-chartYearly").getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['115年度', '114年度', '113年度', '112年度', '111年度', '110年度', '109年度', '108年度', '107年度', '106年度'],
+            datasets: [{
+                label: '歲出總額',
+                data: [3034974371000, 3132468909000, 2881782095000, 2719098790000, 2262064189000, 2161517070000, 2102196982000, 2022029637000, 1991773071000, 1997995520000],
+                backgroundColor: '#315493',      // 預設深藍
+                hoverBackgroundColor: '#5591bf', // hover 填色淺藍
+                borderColor: '#315493',
+                hoverBorderColor: '#97b1de'      // hover 邊框更淡藍
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tooltipCurrencyCallback }, scales: { y: { ticks: { callback: function (value) { return formatCurrency(value); } } } } }
+    });
 
     const budgetDetails = [
         { label: '社會福利', value: 831800000000, color: 'rgba(231, 76, 60, 0.5)', arrow: '▲', display: '8318億' },
@@ -644,6 +737,38 @@ function initScrollToTriggers() {
     });
 }
 
+function initRankSwitches() {
+    document.querySelectorAll('.rank-group-block').forEach((block) => {
+        const switcher = block.querySelector('.rank-switch');
+        const body = block.querySelector('.rank-group-body--switch');
+        if (!switcher || !body) return;
+
+        const btns = Array.from(switcher.querySelectorAll('.rank-switch__btn'));
+        const panels = Array.from(body.querySelectorAll('.rank-column[data-panel]'));
+        if (btns.length < 2 || panels.length < 2) return;
+
+        const setActive = (key) => {
+            btns.forEach((b) => {
+                const active = b.getAttribute('data-target') === key;
+                b.classList.toggle('is-active', active);
+                b.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            panels.forEach((p) => p.classList.toggle('is-active', p.getAttribute('data-panel') === key));
+        };
+
+        btns.forEach((b) => {
+            b.addEventListener('click', () => {
+                const key = b.getAttribute('data-target');
+                if (!key) return;
+                setActive(key);
+            });
+        });
+
+        const initial = btns.find((b) => b.classList.contains('is-active'))?.getAttribute('data-target') || 'cut';
+        setActive(initial);
+    });
+}
+
 function updateNavWheelIndicator(targetEl) {
     const indicator = document.querySelector('.nav-wheel__indicator');
     const list = document.querySelector('.nav-wheel__list');
@@ -741,8 +866,8 @@ function renderHomeStatusChart() {
             data: {
                 labels: ['總體審查結果'],
                 datasets: [
-                    { label: '通過', data: [totalPass], backgroundColor: '#315493', barThickness: 40 },
-                    { label: '凍結', data: [totalFreeze], backgroundColor: '#F0C808', barThickness: 40 },
+                    { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 40 },
+                    { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 40 },
                     { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 40 }
                 ]
             },
@@ -764,51 +889,43 @@ function renderHomeStatusChart() {
 }
 // --- 4. UI & Data Functions ---
 function showPage(pageId) {
-    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
-    window.scrollTo(0, 0);
-
-    const navBtns = document.querySelectorAll('.js-nav-home, .js-nav-budget, .js-nav-legislator');
-    navBtns.forEach(b => {
-        b.classList.remove('nav-active');
-        b.removeAttribute('aria-current');
-    });
-
-    if (pageId === 'home') {
-        document.querySelectorAll(".js-nav-home").forEach(b => { b.classList.add('nav-active'); b.setAttribute('aria-current', 'page'); });
-    }
-    if (pageId === 'page-budget') {
-        document.querySelectorAll(".js-nav-budget").forEach(b => { b.classList.add('nav-active'); b.setAttribute('aria-current', 'page'); });
-    }
-    if (pageId === 'page-legislator') {
-        document.querySelectorAll(".js-nav-legislator").forEach(b => { b.classList.add('nav-active'); b.setAttribute('aria-current', 'page'); });
-    }
-
-    if (pageId === 'page-legislator' && allDataPageC.length === 0 && !isDemoMode) fetchData('page-c');
-    if (window.NavigationState) window.NavigationState.savePage(pageId);
+    const pageMap = {
+        'home': 'index.html',
+        'page-budget': 'budget.html',
+        'page-legislator': 'legislators.html'
+    };
+    const url = pageMap[pageId];
+    if (url) window.location.href = url;
 }
 
-// SPEC v1: 錨點捲動（先切回首頁再捲動）
 function scrollToSection(sectionId) {
     const resolvedId = window.NavigationState ? window.NavigationState.resolveSectionId(sectionId) : sectionId;
     const el = document.getElementById(resolvedId);
-    if (!el) return;
-
-    const hostPage = el.closest('.page-section');
-    if (hostPage && !hostPage.classList.contains('active')) {
-        showPage(hostPage.id);
-    }
-
-    setTimeout(() => {
+    if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+        return;
+    }
+    const sectionPageMap = {
+        'section-review-progress': 'index.html',
+        'section-review-stats': 'index.html',
+        'section-agency-review-home': 'index.html',
+        'section-allocation-115': 'index.html',
+        'section-ministry-compare': 'index.html',
+        'section-ministry-detail': 'index.html',
+        'section-search': 'budget.html',
+        'section-plan-search-home': 'budget.html'
+    };
+    const targetPage = sectionPageMap[resolvedId];
+    if (targetPage) window.location.href = targetPage + '#' + resolvedId;
 }
 
-// SPEC v1: Nav 搜尋框（帶入關鍵字並捲動至首頁搜尋區）
 function handleNavSearch(val) {
-    const homeInput = document.querySelector(".js-search-home-input");
-    if (homeInput) { homeInput.value = val; handleSearchBudget(val); }
-    scrollToSection('section-plan-search-home');
+    if (currentPage === 'budget') {
+        const budgetInput = document.querySelector(".js-search-budget-input");
+        if (budgetInput) { budgetInput.value = val; handleSearchBudget(val); }
+    } else {
+        window.location.href = 'budget.html?q=' + encodeURIComponent((val || '').trim());
+    }
 }
 
 // SPEC v1: 側欄點擊（外連 / 切頁 / 錨點）
@@ -887,21 +1004,32 @@ function closeModal(e, modalId) {
 }
 
 async function jumpToProjectB(projectId) {
-    const loader = document.querySelector(".js-loader"); loader.style.display = 'flex';
-    closeModal(null, 'detailModalC'); showPage('page-budget');
+    if (currentPage !== 'budget') {
+        window.location.href = 'budget.html?plan=' + encodeURIComponent(String(projectId).trim());
+        return;
+    }
+    const loader = document.querySelector(".js-loader");
+    if (loader) loader.style.display = 'flex';
     if (allDataPageA.length === 0) await fetchData('page-a', true);
     if (allDataPageB.length === 0) await fetchData('page-b', true);
-    const targetId = String(projectId).trim(); openUnifiedDetail(targetId); switchTab('review');
-    loader.style.display = 'none';
+    const targetId = String(projectId).trim();
+    openUnifiedDetail(targetId);
+    switchTab('review');
+    if (loader) loader.style.display = 'none';
 }
 
 async function jumpToC(name) {
-    const loader = document.querySelector(".js-loader"); loader.style.display = 'flex';
+    if (currentPage !== 'legislators') {
+        window.location.href = 'legislators.html?name=' + encodeURIComponent(String(name).trim());
+        return;
+    }
+    const loader = document.querySelector(".js-loader");
+    if (loader) loader.style.display = 'flex';
     closeModal(null, 'unifiedModal');
-    if (allDataPageC.length === 0) { try { await fetchData('page-c'); } catch (e) { loader.style.display = 'none'; return; } }
+    if (allDataPageC.length === 0) { try { await fetchData('page-c'); } catch (e) { if (loader) loader.style.display = 'none'; return; } }
     const targetName = String(name).trim();
     const target = allDataPageC.find(r => String(r['委員姓名']).trim() === targetName);
-    loader.style.display = 'none';
+    if (loader) loader.style.display = 'none';
     if (target) { const str = encodeURIComponent(JSON.stringify(target)); openDetailC(str); }
     else { alert(`查無此委員資料 (${targetName})`); }
 }
@@ -1227,6 +1355,7 @@ function updateMinistryStats() {
     }
 
     const selectedAgency = unitSelect.value;
+    const statsSection = document.querySelector('.js-ministry-stats-section');
     let currentData = [];
 
     // [v161] Special Handling for MND Subordinate (0902)
@@ -1242,6 +1371,14 @@ function updateMinistryStats() {
         if (valThisYear) valThisYear.innerText = '-';
         if (valLastYear) valLastYear.innerText = '-';
         if (valGrowth) valGrowth.innerText = '-';
+        if (chartMinistryBar) chartMinistryBar.destroy();
+        if (chartMinistryPie) chartMinistryPie.destroy();
+        if (statsSection) statsSection.style.display = 'none';
+        return;
+    }
+
+    if (!currentData.length) {
+        if (statsSection) statsSection.style.display = 'none';
         if (chartMinistryBar) chartMinistryBar.destroy();
         if (chartMinistryPie) chartMinistryPie.destroy();
         return;
@@ -1290,6 +1427,8 @@ function updateMinistryStats() {
         }
     }
 
+    if (statsSection) statsSection.style.display = 'block';
+
     const chartBarEl = document.querySelector(".js-chartMinistryBar");
     if (chartBarEl) {
         const ctxBar = chartBarEl.getContext('2d');
@@ -1315,7 +1454,19 @@ function updateMinistryStats() {
 // --- 6. Render Functions ---
 
 // [v142] Restored
-function renderRankList(elementId, list, type) { const el = document.getElementById(elementId); if (!list || list.length === 0) { el.innerHTML = '<li style="color:#999;">無資料</li>'; return } let html = ''; list.slice(0, 5).forEach((item, index) => { let val = type === 'cut' ? item.cut : item.freeze; let valDisplay = formatCurrency(val); let colorClass = type === 'cut' ? 'color-cut' : 'color-freeze'; html += `<li><span><span class="rank-idx">${index + 1}</span> ${item.name}</span><span class="rank-val ${colorClass}">${valDisplay}</span></li>` }); el.innerHTML = html }
+function renderRankList(elementId, list, type) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    if (!list || list.length === 0) { el.innerHTML = '<li style="color:#999;">無資料</li>'; return; }
+    let html = '';
+    list.slice(0, 5).forEach((item, index) => {
+        const val = type === 'cut' ? item.cut : item.freeze;
+        const valDisplay = formatCurrency(val);
+        const colorClass = type === 'cut' ? 'color-cut' : 'color-freeze';
+        html += `<li><div class="rank-row-main"><span class="rank-idx">${index + 1}</span> ${item.name}</div><div class="rank-row-val ${colorClass}">${valDisplay}</div></li>`;
+    });
+    el.innerHTML = html;
+}
 
 // [v142] Restored
 function renderLegislatorGrid(data) {
@@ -1352,8 +1503,8 @@ function renderLegislatorGrid(data) {
                     <span class="leg-party-tag ${partyClass}">${party}</span>
                     <div class="leg-stats-box">
                         <div class="stat-item"><span class="stat-val" style="color:var(--danger-color);">${row['刪減案數'] || 0}</span><span class="stat-label">刪減案</span></div>
-                        <div class="stat-item"><span class="stat-val" style="color:var(--warning-color);">${row['凍結案數'] || 0}</span><span class="stat-label">凍結案</span></div>
-                        <div class="stat-item"><span class="stat-val" style="color:var(--secondary-color);">${row['主決議數'] || 0}</span><span class="stat-label">主決議</span></div>
+                        <div class="stat-item"><span class="stat-val" style="color:var(--freeze-color);">${row['凍結案數'] || 0}</span><span class="stat-label">凍結案</span></div>
+                        <div class="stat-item"><span class="stat-val" style="color:var(--pen-color-main-resolution);">${row['主決議數'] || 0}</span><span class="stat-label">主決議</span></div>
                     </div>
                 </div>`;
     });
@@ -1465,11 +1616,13 @@ function updateHomeSearchCtaVisibility() {
 }
 
 function goToFullSearchResults() {
-    showPage('page-budget');
-    setTimeout(() => {
+    if (currentPage === 'budget') {
         const section = document.getElementById('section-search');
         if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+    } else {
+        const keyword = currentSearchKeyword || '';
+        window.location.href = 'budget.html?q=' + encodeURIComponent(keyword);
+    }
 }
 window.goToFullSearchResults = goToFullSearchResults;
 
@@ -1942,10 +2095,10 @@ function updateBudgetPageReview() {
 
     // 更新文字說明
     captionEl.innerHTML = `
-                <span style="color:#315493; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
+                <span style="color:#1b9431; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
                 通過：<b>${pctPass}%</b> | 
                 <span style="color:#c63f3f">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> | 
-                <span style="color:#F0C808">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
+                <span style="color:#5591bf">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
             `;
 
     // 繪製圖表
@@ -1957,8 +2110,8 @@ function updateBudgetPageReview() {
         data: {
             labels: ['審查結果'],
             datasets: [
-                { label: '通過', data: [totalPass], backgroundColor: '#315493', barThickness: 50 },
-                { label: '凍結', data: [totalFreeze], backgroundColor: '#F0C808', barThickness: 50 },
+                { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 50 },
+                { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 50 },
                 { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 50 }
             ]
         },
@@ -2088,11 +2241,11 @@ function renderTimeline(data) {
                 <div class="timeline-v2__event" role="listitem">
                     <div class="timeline-v2__dot" aria-hidden="true"></div>
                     <div class="timeline-v2__card">
-                        <div class="timeline-v2__meta">
-                            <span class="timeline-v2__date">${day.dateKey}</span>
-                        </div>
-                        <div class="timeline-v2__title">
-                            <span>${title}</span>
+                        <div class="timeline-v2__header">
+                            <div class="timeline-v2__info">
+                                <span class="timeline-v2__date">${day.dateKey}</span>
+                                <span class="timeline-v2__title-text">${title}</span>
+                            </div>
                             ${linkBtn}
                         </div>
                     </div>
@@ -2204,53 +2357,102 @@ async function fetchData(pageId, silent = false) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    initSidebarNav();
     initFloatBackTop();
-    initNavToggle();
+    initFloatNavCollapseMenu();
     initScrollToTriggers();
-    updateNavWheelIndicator();
-    renderMainCharts();
-    Promise.all([
-        fetchData('page-a', true),
-        fetchData('page-b', true),
-        fetchData('page-c', true),
-        fetchData('page-d', true)
-    ]).then(() => {
-        // ALWAYS initialize these sections if we have any data at all (including Mock Data)
-        if (allDataPageA && allDataPageA.length > 0) {
-            // 1. 初始化部會分析 (首頁)
-            initMinistrySection();
+    initRankSwitches();
 
-            // 2. 初始化搜尋頁儀表板 (分頁)
-            initBudgetPageFilters();
-        }
+    // Handle hash-based scroll (from cross-page links like index.html#section-review-progress)
+    if (window.location.hash) {
+        const hashId = window.location.hash.slice(1);
+        setTimeout(() => {
+            const el = document.getElementById(hashId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    }
 
-        // [v175 新增] 繪製首頁總審查圖表
-        renderHomeStatusChart();
-        renderHomeCutFreezeCards();
+    if (currentPage === 'overview') {
+        renderMainCharts();
+        Promise.all([
+            fetchData('page-a', true),
+            fetchData('page-b', true),
+            fetchData('page-d', true)
+        ]).then(() => {
+            if (allDataPageA && allDataPageA.length > 0) {
+                initMinistrySection();
+            }
+            renderHomeStatusChart();
+            renderHomeCutFreezeCards();
 
-        if (isDemoMode) {
-            document.querySelectorAll('.demo-mode-badge').forEach(el => el.style.display = 'block');
-        }
+            if (isDemoMode) {
+                document.querySelectorAll('.demo-mode-badge').forEach(el => el.style.display = 'block');
+            }
+        });
+    }
 
-        if (window.NavigationState) {
-            const state = window.NavigationState.restoreState();
-            if (state && state.searchKeyword) {
-                currentSearchKeyword = state.searchKeyword;
-                handleSearchBudget(state.searchKeyword);
-                if (state.searchPage && state.searchPage > 1) {
-                    changeSearchPage(state.searchPage);
+    if (currentPage === 'budget') {
+        Promise.all([
+            fetchData('page-a', true),
+            fetchData('page-b', true)
+        ]).then(() => {
+            if (allDataPageA && allDataPageA.length > 0) {
+                initBudgetPageFilters();
+            }
+
+            if (isDemoMode) {
+                document.querySelectorAll('.demo-mode-badge').forEach(el => el.style.display = 'block');
+            }
+
+            // Handle ?q= and ?plan= URL parameters
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q');
+            const plan = params.get('plan');
+
+            if (q) {
+                const budgetInput = document.querySelector('.js-search-budget-input');
+                if (budgetInput) budgetInput.value = q;
+                handleSearchBudget(q);
+            } else if (window.NavigationState) {
+                const state = window.NavigationState.restoreState();
+                if (state && state.searchKeyword) {
+                    currentSearchKeyword = state.searchKeyword;
+                    handleSearchBudget(state.searchKeyword);
+                    if (state.searchPage && state.searchPage > 1) {
+                        changeSearchPage(state.searchPage);
+                    }
                 }
             }
-            if (state && state.activePage && document.getElementById(state.activePage)) {
-                showPage(state.activePage);
+
+            if (plan) {
+                openUnifiedDetail(plan);
+                switchTab('review');
             }
-        }
-    });
+        });
+    }
+
+    if (currentPage === 'legislators') {
+        fetchData('page-c', false).then(() => {
+            if (isDemoMode) {
+                document.querySelectorAll('.demo-mode-badge').forEach(el => el.style.display = 'block');
+            }
+
+            // Handle ?name= URL parameter (auto-open legislator modal)
+            const params = new URLSearchParams(window.location.search);
+            const name = params.get('name');
+            if (name && allDataPageC.length > 0) {
+                const target = allDataPageC.find(r => String(r['委員姓名']).trim() === name);
+                if (target) {
+                    const str = encodeURIComponent(JSON.stringify(target));
+                    openDetailC(str);
+                }
+            }
+        });
+    }
+
+    // page-other: no data to load
 });
 
 window.addEventListener('resize', () => {
     const arrowLine = document.querySelector(".js-dynamic-arrow");
     if (arrowLine) arrowLine.style.opacity = '0';
-    updateNavWheelIndicator();
 });
