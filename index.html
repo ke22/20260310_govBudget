@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中央政府總預算觀測站 (v175)</title>
+    <link rel="icon" href="data:,">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./styles_vs.css?v=177">
+</head>
+
+<body class="page">
+
+    <div id="loader" class="loading-overlay js-loader">
+        <div class="spinner"></div>
+        <p style="margin-top:var(--space-5); color:#8e8e93; font-weight:500; font-size:0.9375rem;">資料讀取中，請稍候...</p>
+    </div>
+
+    <div id="error-display" class="loading-overlay js-error-display" style="display:none;">
+        <div class="error-message">
+            <h3>⚠️ 資料讀取失敗</h3>
+            <p>無法讀取資料。請確認你是用本機伺服器開啟（不要用 file://），且專案根目錄存在 <code>data_page_*.json</code>。</p>
+        </div>
+    </div>
+
+    <nav class="float-nav js-float-nav" aria-label="全站導覽">
+        <button type="button" class="float-nav__brand" onclick="showPage('home')" aria-label="回到首頁">
+            <img class="float-nav__mark" src="./img/cna_logo.svg" alt="" aria-hidden="true" />
+            <span class="float-nav__title">總預算觀測站</span>
+        </button>
+        <div class="float-nav__seg" aria-label="頁面切換">
+            <button type="button" class="float-nav__btn js-nav-home nav-active" onclick="showPage('home')">首頁</button>
+            <button type="button" class="float-nav__btn js-nav-budget" onclick="showPage('page-budget')">預算審查</button>
+            <button type="button" class="float-nav__btn js-nav-legislator" onclick="showPage('page-legislator')">立委把關</button>
+        </div>
+    </nav>
+
+    <div id="unifiedModal" class="modal-overlay js-unifiedModal" onclick="closeModal(event, 'unifiedModal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeModal(null, 'unifiedModal')">&times;</span>
+            <div class="modal-header-area">
+                <h2 class="js-u-title" id="u-title"
+                    style="margin:0 0 10px 0; color:var(--primary-color); font-size:1.6rem;"></h2>
+                <div>
+                    <span id="u-dept" class="pb-dept js-u-dept"></span>
+                    <span class="js-u-amount" id="u-amount"
+                        style="font-weight:900; color:var(--secondary-color); margin-left:15px; font-size:1.3rem;"></span>
+                </div>
+            </div>
+            <div class="modal-tabs">
+                <div class="modal-tab active" onclick="switchTab('plan')">工作計畫內容</div>
+                <div class="modal-tab" onclick="switchTab('review')">審查刪減結果</div>
+            </div>
+            <div class="modal-body-area">
+                <div id="tab-content-plan" class="tab-content active js-tab-content-plan">
+                    <div
+                        style="background:var(--bg-color); padding:20px; border-radius:12px; margin-bottom:25px; border:1px solid var(--border-color);">
+                        <strong style="color:var(--secondary-color); font-size:1.1rem;">內容：</strong>
+                        <div id="u-desc-container" class="desc-container js-u-desc-container" style="margin-top:10px;">
+                            <span class="js-u-desc" id="u-desc" style="color:#333;"></span>
+                            <div class="desc-gradient"></div>
+                        </div>
+                        <button id="toggle-desc-btn" class="toggle-btn js-toggle-desc-btn"
+                            onclick="toggleDesc()">展開閱讀全文</button>
+                    </div>
+
+                    <div class="modal-charts-grid">
+                        <div class="mini-chart-box" style="grid-column: 1 / -1;">
+                            <h4>分支計畫詳情</h4>
+                            <div id="branch-btn-container" class="btn-group js-branch-btn-container"
+                                style="margin-bottom:15px; flex-wrap: wrap; gap:10px; justify-content:center; margin-top:10px;">
+                            </div>
+
+                            <div class="js-branch-detail-display" id="branch-detail-display"
+                                style="display:none; margin-top:20px;">
+                                <div
+                                    style="height:80px; margin-bottom:20px; max-width:600px; margin-left:auto; margin-right:auto;">
+                                    <canvas class="js-chartBranchRatio" id="chartBranchRatio"></canvas>
+                                </div>
+                                <div
+                                    style="background:var(--bg-color); padding:20px; border-radius:12px; text-align:left; border:1px solid var(--border-color);">
+                                    <strong
+                                        style="color:var(--secondary-color); font-size:1rem; display:block; margin-bottom:8px;">📝
+                                        該分支說明：</strong>
+                                    <div id="b-desc-container" class="desc-container js-b-desc-container">
+                                        <span class="js-b-desc-text" id="b-desc-text"
+                                            style="color:#444; font-size:0.95rem;"></span>
+                                        <div class="desc-gradient"></div>
+                                    </div>
+                                    <button id="b-toggle-btn" class="toggle-btn js-b-toggle-btn"
+                                        onclick="toggleBranchDesc()"
+                                        style="padding:6px; font-size:0.9rem; margin-top:10px;">展開說明</button>
+                                </div>
+                            </div>
+
+                            <div class="js-branch-no-data" id="branch-no-data"
+                                style="color:#999; padding:20px; display:none;">無分支計畫資料</div>
+                        </div>
+
+                        <div class="mini-chart-box">
+                            <h4>用途比例</h4>
+                            <div style="height:250px;"><canvas class="js-chartDetailPie" id="chartDetailPie"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-analysis-section">
+                        <div class="analysis-title">本計畫佔比分析</div>
+                        <div class="modal-charts-grid js-analysis-normal" id="analysis-normal">
+                            <div class="mini-chart-box">
+                                <h4>所屬機關佔比</h4>
+                                <div style="height:120px;"><canvas class="js-chartModalPlanRatio"
+                                        id="chartModalPlanRatio"></canvas></div>
+                                <p class="js-caption-plan-ratio" id="caption-plan-ratio"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;">本計畫金額 vs
+                                    主管機關總預算</p>
+                            </div>
+                            <div class="mini-chart-box">
+                                <h4>各用途項目佔比</h4>
+                                <div style="height:250px;"><canvas class="js-chartModalCatRatio"
+                                        id="chartModalCatRatio"></canvas></div>
+                                <p class="js-caption-cat-ratio" id="caption-cat-ratio"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;">
+                                    請滑鼠移至(或點擊)該類別的整行區域即可查看</p>
+                            </div>
+                        </div>
+
+                        <div id="analysis-military" class="modal-charts-grid js-analysis-military"
+                            style="display:none; grid-template-columns: 1fr;">
+                            <div class="mini-chart-box">
+                                <h4>所屬機關佔比（國防部所屬）</h4>
+                                <div style="height:120px;"><canvas class="js-chartMilMndRatio"
+                                        id="chartMilMndRatio"></canvas></div>
+                                <p class="js-caption-mil-mnd-ratio" id="caption-mil-mnd-ratio"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;"></p>
+                            </div>
+                            <div class="mini-chart-box">
+                                <h4 class="js-title-mil-unit-ratio" id="title-mil-unit-ratio">所屬機關佔比</h4>
+                                <div style="height:120px;"><canvas class="js-chartMilUnitRatio"
+                                        id="chartMilUnitRatio"></canvas></div>
+                                <p class="js-caption-mil-unit-ratio" id="caption-mil-unit-ratio"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;"></p>
+                            </div>
+                            <div class="mini-chart-box">
+                                <h4>國防部用途佔比</h4>
+                                <div style="height:250px;"><canvas class="js-chartMilMndCat"
+                                        id="chartMilMndCat"></canvas></div>
+                                <p class="js-caption-mil-mnd-cat" id="caption-mil-mnd-cat"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;"></p>
+                            </div>
+                            <div class="mini-chart-box">
+                                <h4>單位用途佔比</h4>
+                                <div style="height:250px;"><canvas class="js-chartMilUnitCat"
+                                        id="chartMilUnitCat"></canvas></div>
+                                <p class="js-caption-mil-unit-cat" id="caption-mil-unit-cat"
+                                    style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:bold;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-content-review" class="tab-content js-tab-content-review">
+                    <div class="js-review-data-container" id="review-data-container">
+                        <div class="modal-charts-grid">
+                            <div class="mini-chart-box">
+                                <h4>最終審查結果比例</h4>
+                                <div style="height:250px;"><canvas class="js-chartBResult" id="chartBResult"></canvas>
+                                </div>
+                            </div>
+                            <div class="mini-chart-box">
+                                <h4>三階段刪凍比較</h4>
+                                <div style="height:250px;"><canvas class="js-chartBStages" id="chartBStages"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 35px;">
+                            <h3
+                                style="border-left: 8px solid var(--accent-color); padding-left: 15px; color:var(--primary-color);">
+                                委員提案紀錄</h3>
+                            <div style="overflow-x: auto;">
+                                <table class="proposal-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:15%">提案委員</th>
+                                            <th style="width:20%">審查項目</th>
+                                            <th style="width:20%">類別/金額</th>
+                                            <th>提案理由</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="js-proposal-table-body" id="proposal-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="js-review-no-data" id="review-no-data"
+                        style="display:none; text-align:center; padding: 3rem; color:#999; font-size:1.1rem;">
+                        <p>此計畫尚無審查刪減資料。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModalC" class="modal-overlay js-detailModalC" onclick="closeModal(event, 'detailModalC')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeModal(null, 'detailModalC')">&times;</span>
+            <div class="leg-modal-body">
+                <div class="leg-detail-header">
+                    <div id="mc-avatar" class="leg-detail-avatar js-mc-avatar"></div>
+                    <h2 class="js-mc-name" id="mc-name"
+                        style="color:var(--primary-color); margin-bottom:10px; font-size:1.8rem;"></h2>
+                    <span id="mc-party" class="leg-party-tag js-mc-party"></span>
+                </div>
+                <h3 class="leg-detail-table-title title-cut">刪減案提案紀錄</h3>
+                <div style="overflow-x: auto;">
+                    <table class="proposal-table">
+                        <thead>
+                            <tr>
+                                <th style="width:12%">進度日期</th>
+                                <th style="width:18%">工作計畫</th>
+                                <th style="width:18%">刪減項目</th>
+                                <th style="width:12%">刪減金額</th>
+                                <th style="width:25%">刪減理由</th>
+                                <th style="width:15%">審查結果</th>
+                            </tr>
+                        </thead>
+                        <tbody class="js-table-cut-c" id="table-cut-c"></tbody>
+                    </table>
+                </div>
+                <div class="js-mc-updated-cut" id="mc-updated-cut"
+                    style="text-align: right; font-size: 0.85rem; color: #888; font-weight: bold; margin-top: 5px; margin-bottom: 25px;">
+                </div>
+                <h3 class="leg-detail-table-title title-freeze">凍結案提案紀錄</h3>
+                <div style="overflow-x: auto;">
+                    <table class="proposal-table">
+                        <thead>
+                            <tr>
+                                <th style="width:12%">進度日期</th>
+                                <th style="width:18%">工作計畫</th>
+                                <th style="width:18%">凍結項目</th>
+                                <th style="width:12%">凍結金額</th>
+                                <th style="width:25%">凍結理由</th>
+                                <th style="width:15%">審查結果</th>
+                            </tr>
+                        </thead>
+                        <tbody class="js-table-freeze-c" id="table-freeze-c"></tbody>
+                    </table>
+                </div>
+                <div class="js-mc-updated-freeze" id="mc-updated-freeze"
+                    style="text-align: right; font-size: 0.85rem; color: #888; font-weight: bold; margin-top: 5px; margin-bottom: 25px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden header for JS compatibility -->
+    <header style="display:none;">
+        <h1 onclick="showPage('home')">中央政府總預算觀測站</h1>
+        <nav id="main-nav">
+            <button type="button" class="nav-toggle js-nav-toggle" id="nav-toggle" aria-label="展開選單">☰</button>
+            <div class="nav-menu js-nav-menu" id="nav-menu">
+                <input type="text" class="nav-search-input" id="nav-search-input" placeholder="搜尋預算..."
+                    oninput="handleNavSearch(this.value)" />
+            </div>
+            <button id="nav-home" class="nav-active js-nav-home" onclick="showPage('home')">首頁</button>
+            <button class="js-nav-budget" id="nav-budget" onclick="showPage('page-budget')">預算審查</button>
+            <button class="js-nav-legislator" id="nav-legislator" onclick="showPage('page-legislator')">立委把關</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="page-section active js-home">
+            <aside id="home-sidebar" class="spec-sidebar" aria-label="首頁導覽">
+                <div class="spec-sidebar-arrow" aria-hidden="true">▶</div>
+                <div class="spec-sidebar-list js-sidebar-nav-list" id="sidebar-nav-list">
+                    <a href="#" data-action="external" data-href="https://www.cna.com.tw/topic/newstopic/3958.aspx"
+                        class="spec-sidebar-item">相關新聞</a>
+                    <a href="#" data-action="page" data-page="page-legislator" class="spec-sidebar-item">立委把關</a>
+                    <a href="#section-review-progress" data-action="anchor" class="spec-sidebar-item">預算審查進度</a>
+                    <a href="#section-allocation-115" data-action="anchor" class="spec-sidebar-item">115 年度預算案分配概況</a>
+                    <a href="#section-plan-search-home" data-action="anchor" class="spec-sidebar-item">預算計畫搜尋</a>
+                    <a href="#section-agency-review-home" data-action="anchor" class="spec-sidebar-item">各機關審查結果</a>
+                    <a href="#section-ministry-compare" data-action="anchor" class="spec-sidebar-item">各部會今年去年預算比較</a>
+                    <a href="#section-ministry-detail" data-action="anchor" class="spec-sidebar-item">部會預算詳細分析</a>
+                </div>
+            </aside>
+
+            <div class="hero__inner">
+                <div class="hero__main">
+                    <p class="hero__kicker">115 年度中央政府總預算案</p>
+                    <h1 class="hero__title">看懂預算，跟上每一筆被砍與凍結</h1>
+                    <p class="hero__lead">
+                        從總數到各部會、各計畫，整理立法院審議進度、刪減與凍結金額，讓你一次掌握年度預算案的全貌。
+                    </p>
+                    <div class="hero__actions">
+                        <button class="btn btn--primary js-scroll-to" data-target="section-review-progress">先看整體審查進度</button>
+                        <button class="btn btn--outline js-scroll-to" data-target="section-plan-search-home">直接搜尋預算計畫</button>
+                    </div>
+
+                    <div class="hero__summary" aria-label="預算刪減與凍結摘要">
+                        <article class="summary-card">
+                            <h2 class="summary-card__title">已刪減</h2>
+                            <p class="summary-card__amount js-summary-cut-amount">0</p>
+                            <p class="summary-card__meta">
+                                較去年 <span class="summary-card__yoy js-summary-cut-yoy">—</span>
+                            </p>
+                        </article>
+                        <article class="summary-card">
+                            <h2 class="summary-card__title">已凍結</h2>
+                            <p class="summary-card__amount js-summary-freeze-amount">0</p>
+                            <p class="summary-card__meta">
+                                較去年 <span class="summary-card__yoy js-summary-freeze-yoy">—</span>
+                            </p>
+                        </article>
+                    </div>
+                </div>
+
+                <aside class="hero__sidebar" aria-label="首頁快速導覽">
+                    <div class="nav-wheel">
+                        <div class="nav-wheel__header">
+                            <span class="nav-wheel__label">快速導覽</span>
+                        </div>
+                        <div class="nav-wheel__body">
+                            <div class="nav-wheel__indicator" aria-hidden="true"></div>
+                            <ul class="nav-wheel__list js-hero-nav-list">
+                                <li class="nav-wheel__item js-scroll-to is-active"
+                                    data-target="https://www.cna.com.tw/topic/newstopic/3958.aspx">相關新聞</li>
+                                <li class="nav-wheel__item js-scroll-to is-near" data-target="page-legislator">立委把關</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-review-progress">預算審查進度</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-allocation-115">115 年度預算案分配概況</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-plan-search-home">預算計畫搜尋</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-agency-review-home">各機關審查結果</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-ministry-compare">各部會今年去年預算比較</li>
+                                <li class="nav-wheel__item js-scroll-to" data-target="section-ministry-detail">部會預算詳細分析</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Pencil home bottom: Title + intro card + article -->
+            <div class="pen-home-content">
+                <h2 class="pen-main-title">總預算案持續追蹤<br>互動圖表掌握審查進度刪凍情況</h2>
+                <div class="pen-intro-card">
+                    <p>115年度總預算案仍待立法院審查，引發關注。總預算通過與否影響多項政府施政與補助項目，為讓讀者簡單掌握總預算案審查過程，中央社整理相關資訊、化成多個資訊圖表供讀者閱覽、查詢，輕鬆了解部會預算目前審議情形。
+                    </p>
+                </div>
+            </div>
+            <div class="pen-article">
+                <p>行政院會114年8月21日通過「115年度中央政府總預算案暨附屬單位預算及綜計表」，並於9月送入立法院。</p>
+                <p>立法院藍白黨團認為行政院未依法編列「軍人待遇條例」及「警察人員人事條例」的相關預算，也未撤回總預算案並重新編列上述預算，批評行政院違法亂紀。國民黨團12月呼籲，只要將預算書修改好，立法院會立即將總預算付委審查。
+                </p>
+                <p>截至115年1月2日，115年度總預算案仍未付委，這是第一次出現跨年度總預算仍未進委員會審查的狀況。</p>
+            </div>
+
+            <div class="scroll-hint">
+                <span>往下滑看更多</span>
+                <svg viewBox="0 0 24 24">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+                </svg>
+            </div>
+
+            <!-- Wireframe-2: Summary cards + review progress -->
+            <div id="section-review-progress" class="content-block">
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>預算審查進度</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <div class="card">
+                    <div class="timeline-wrapper js-budget-timeline" id="budget-timeline"></div>
+                </div>
+            </div>
+
+            <div id="section-review-stats" class="content-block">
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>總預算審查比例概況</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <div class="article-text">
+                    <p>中央政府總預算包含成千上百工作計畫，我們立法院公報內容，嘗試計算各項工作計畫的刪凍金額，並分成工作計畫與立委2個部分，可讓讀者查詢關心的議題預算金額與工作內容，或是了解各立委提案情形。</p>
+                    <p>目前呈現在網頁上的金額數字皆是透過立法院公報內容進行計算，可能出現誤差，最終法定預算金額仍依以主計總處公布為主。</p>
+                </div>
+                <div class="card" style="padding-bottom: 2.5rem;">
+                    <div style="height: 100px; margin-bottom: 2rem;"><canvas class="js-chartStatusB"
+                            id="chartStatusB"></canvas></div>
+                    <div style="text-align:center; font-size:0.95rem; color:#666; margin-bottom:2rem; font-weight:500;">
+                        說明：此圖表包含各工作計畫刪減與部會通案刪減之總和。</div>
+                    <div class="btn-group" style="margin-top:0; border-top:2px solid #f0f0f0; padding-top:2rem;">
+                        <button class="big-btn btn-a" onclick="showPage('page-budget')">開始搜尋<br>預算與審查內容</button>
+                        <button class="big-btn btn-c" onclick="showPage('page-legislator')">開始搜尋<br>立委把關紀錄</button>
+                    </div>
+                </div>
+                <div class="card" style="padding: 2.5rem; margin-bottom: 2.5rem;">
+                    <div id="section-agency-review-home" class="ranking-container" style="margin-top: 0;">
+                        <div class="rank-column card">
+                            <h3 style="margin-top:0;">部會機關 Top 5</h3>
+                            <div class="rank-group">
+                                <h4>刪減金額最多</h4>
+                                <ul class="rank-list" id="rank-dept-cut"></ul>
+                            </div>
+                        </div>
+                        <div class="rank-column card">
+                            <h3 style="margin-top:0;">部會機關 Top 5</h3>
+                            <div class="rank-group">
+                                <h4>凍結金額最多</h4>
+                                <ul class="rank-list" id="rank-dept-freeze"></ul>
+                            </div>
+                        </div>
+                        <div class="rank-column card">
+                            <h3 style="margin-top:0;">工作計畫 Top 5</h3>
+                            <div class="rank-group">
+                                <h4>刪減金額最多</h4>
+                                <ul class="rank-list" id="rank-plan-cut"></ul>
+                            </div>
+                        </div>
+                        <div class="rank-column card">
+                            <h3 style="margin-top:0;">工作計畫 Top 5</h3>
+                            <div class="rank-group">
+                                <h4>凍結金額最多</h4>
+                                <ul class="rank-list" id="rank-plan-freeze"></ul>
+                            </div>
+                        </div>
+                        <div style="grid-column: 1 / -1; text-align: center; margin-top:20px;">
+                            <button class="big-btn btn-a" onclick="showPage('page-budget')">看完整分析 → 預算審查頁</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-block">
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>歷年預算案歲出比較</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <div class="article-text">
+                    <p>另外，我們也整理了今年總預算案編列情形提供讀者參考。</p>
+                    <p>115年度總預算案受新版財劃法釋出財源給地方的影響，歲入共編列新台幣2兆8623億元，較114年度大幅減少3025億元。</p>
+                    <p>歲出編列則為3兆350億元，較114年度預算增加1100億，是近10年總預算案歲出編列第2高的金額。</p>
+                    <p>歲出為各項工作計畫的支出，但不包含償還債務；歲入則是為支應個工作計畫所籌措的財源，不包含舉債和前一年度歲計剩餘。</p>
+                </div>
+                <div id="section-ministry-compare" class="card">
+                    <div class="chart-container"><canvas class="js-chartYearly" id="chartYearly"></canvas></div>
+                </div>
+
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>115 年度預算案分配概況</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <div class="article-text">
+                    <p>歲出編列時會依據其業務性質做科目分類，也就是「政事別」。根據「歲出政事別科目歸類原則與範圍」規定，政事別科目區分為大分類、中分類、業務計畫3個層次，其中大分類包括一般政務、國防、經濟發展、教育科學文化等9大項目。
+                    </p>
+                    <p>今年占比最多8318億元用於社會福利、5566億元用於教育科學文化、5488億元用於國防、4275億元用於經濟發展。其中國防支出增加最多、教育科學文化支出最少。</p>
+                </div>
+                <div id="section-allocation-115" class="card">
+                    <div class="bill-container">
+                        <div class="bill-visuals">
+                            <canvas class="js-chartAllocation" id="chartAllocation"></canvas>
+                        </div>
+                        <svg id="pointer-layer" class="bill-svg-layer">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
+                                    orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#315493" />
+                                </marker>
+                            </defs>
+                            <path id="dynamic-arrow" class="bill-arrow-line js-dynamic-arrow"
+                                marker-end="url(#arrowhead)"></path>
+                        </svg>
+                    </div>
+                    <div id="bill-info-overlay" class="bill-info-overlay js-bill-info-overlay">
+                        <p class="bill-info-text">請點擊下方圖例<br>查看數值</p>
+                    </div>
+                    <div id="chartAllocationLegend" class="chart-legend js-chartAllocationLegend"></div>
+                </div>
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>部會預算詳細分析</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <div id="section-ministry-detail">
+                    <!-- Redesigned Ministry Stats Card -->
+                    <div id="ministry-stats-card" class="card"
+                        style="border-radius:var(--pencil-radius-lg); padding:0; overflow:hidden;">
+
+                        <!-- Top Header Section: Filters + Key Stats -->
+                        <div
+                            style="background:var(--bg-secondary); padding:2rem 2.5rem; border-bottom:1px solid var(--separator);">
+                            <div class="pen-filter-row" style="margin-top:0;">
+                                <span style="font-weight:600;margin-right:8px;">部會</span>
+                                <select id="filter-ministry" class="ministry-select js-filter-ministry"
+                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px; background:#fff;"
+                                    onchange="updateMinistryStats()">
+                                    <option value="">請選擇所屬部會</option>
+                                </select>
+                                <span style="font-weight:600;margin-left:24px;margin-right:8px;">機關</span>
+                                <select id="filter-unit" class="ministry-select js-filter-unit"
+                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px; background:#fff;"
+                                    onchange="updateMinistryStats()">
+                                    <option value="">請選擇主管機關 (全部)</option>
+                                </select>
+                            </div>
+
+                            <div class="pen-stats-row"
+                                style="margin:2rem 0 0 0; background:#fff; padding:1.5rem; border-radius:var(--pencil-radius); border:1px solid var(--separator); box-shadow:var(--shadow-sm);">
+                                <div class="pen-stat-block">
+                                    <div class="val js-val-this-year" style="color:#0b0b0b;" id="val-this-year">-</div>
+                                    <div class="label">今年預算(億)</div>
+                                </div>
+                                <div class="pen-stat-divider"></div>
+                                <div class="pen-stat-block">
+                                    <div class="val js-val-last-year" style="color:#0b0b0b;" id="val-last-year">-</div>
+                                    <div class="label">去年預算(億)</div>
+                                </div>
+                                <div class="pen-stat-divider"></div>
+                                <div class="pen-stat-block">
+                                    <div class="val js-val-growth" style="color:#c63f3f;" id="val-growth">-</div>
+                                    <div class="label">增減幅度</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Section: Charts -->
+                        <div
+                            style="padding:2.5rem; display:grid; grid-template-columns:1.5fr 1fr; gap:3rem; align-items:start;">
+                            <div>
+                                <h4
+                                    style="margin-top:0; margin-bottom:1.5rem; color:var(--primary-color); font-weight:700; border-left:4px solid var(--secondary-color); padding-left:12px;">
+                                    預算分佈趨勢</h4>
+                                <div style="height:280px;"><canvas class="js-chartMinistryBar"
+                                        id="chartMinistryBar"></canvas></div>
+                            </div>
+                            <div>
+                                <h4
+                                    style="margin-top:0; margin-bottom:1.5rem; color:var(--primary-color); font-weight:700; border-left:4px solid var(--accent-color); padding-left:12px;">
+                                    預算分配比例</h4>
+                                <div style="height:280px;"><canvas class="js-chartMinistryPie"
+                                        id="chartMinistryPie"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-plan-search-home" class="content-block">
+                <div class="pen-section-head">
+                    <div class="pen-divider"></div>
+                    <div class="pen-head-row">
+                        <div class="pen-triangle"></div>
+                        <h3>首頁預算計畫搜尋</h3>
+                    </div>
+                    <div class="pen-divider"></div>
+                </div>
+                <p class="article-text" style="text-align:center;margin-bottom:1.5rem;">輸入關鍵字可在此查看結果，或前往預算審查頁使用完整搜尋。</p>
+                <div class="card" style="padding: 2.5rem; margin-bottom: 2.5rem;">
+                    <h3 style="margin-top:0;">快速搜尋</h3>
+                    <p style="text-align:right;color:#8e8e93;font-size:0.875rem;font-weight:600;margin:-10px 0 16px;">
+                        最多顯示 5 筆
+                    </p>
+                    <div class="pen-search-bar">
+                        <input type="text" class="js-search-home-input" id="search-home-input"
+                            placeholder="輸入關鍵字 (如: 國防, 潛艦...)" oninput="handleSearchBudget(this.value)">
+                        <button type="button"
+                            onclick="handleSearchBudget(document.getElementById('search-home-input').value)">搜尋</button>
+                    </div>
+                    <div class="pen-hot-keywords">
+                        <span style="font-weight:600;color:var(--primary-color);">熱門關鍵字</span>
+                        <span class="pen-keyword-chip"
+                            onclick="document.getElementById('search-home-input').value='國防';handleSearchBudget('國防')">國防</span>
+                        <span class="pen-keyword-chip"
+                            onclick="document.getElementById('search-home-input').value='潛艦';handleSearchBudget('潛艦')">潛艦</span>
+                        <span class="pen-keyword-chip"
+                            onclick="document.getElementById('search-home-input').value='數位發展';handleSearchBudget('數位發展')">數位發展</span>
+                        <span class="pen-keyword-chip"
+                            onclick="document.getElementById('search-home-input').value='社會福利';handleSearchBudget('社會福利')">社會福利</span>
+                        <span class="pen-keyword-chip"
+                            onclick="document.getElementById('search-home-input').value='教育';handleSearchBudget('教育')">教育</span>
+                    </div>
+                    <div class="js-results-container-home pen-results-container" id="results-container-home">
+                        <p style="text-align:center;color:#999;padding:20px;">請輸入關鍵字開始搜尋，結果將顯示於此</p>
+                    </div>
+                    <div class="js-home-search-cta" style="display:none;text-align:center;margin-top:1rem;">
+                        <button class="big-btn btn-a" type="button" onclick="goToFullSearchResults()">
+                            查看完整搜尋結果
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-budget" class="page-section">
+            <div class="pen-section-head" style="margin-top:2rem;">
+                <div class="pen-divider"></div>
+                <div class="pen-head-row">
+                    <div class="pen-triangle"></div>
+                    <h3>各機關審查結果</h3>
+                </div>
+                <div class="pen-divider"></div>
+            </div>
+            <p class="article-text" style="text-align:center;margin-bottom:1.5rem;">選擇部會與機關，查看該機關的預算審查結果分析</p>
+            <div id="demo-badge-budget" class="demo-mode-badge" style="text-align:center;">⚠️ 測試資料模式：僅能搜尋「測試」或「國防」</div>
+            <div class="card" style="margin-bottom:2.5rem;border-radius:var(--pencil-radius-lg);padding:2rem 2.5rem;">
+                <div class="pen-filter-row">
+                    <span style="font-weight:600;margin-right:8px;">部會</span>
+                    <select id="bp-filter-ministry" class="ministry-select js-bp-filter-ministry"
+                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
+                        onchange="updateBudgetPageReview()">
+                        <option value="">請選擇所屬部會</option>
+                    </select>
+                    <span style="font-weight:600;margin-left:24px;margin-right:8px;">機關</span>
+                    <select id="bp-filter-unit" class="ministry-select js-bp-filter-unit"
+                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
+                        onchange="updateBudgetPageReview()">
+                        <option value="">請選擇主管機關 (全部)</option>
+                    </select>
+                </div>
+                <div class="pen-stats-row" style="margin:2rem 0;">
+                    <div class="pen-stat-block">
+                        <div class="val" style="color:#0b0b0b;">-</div>
+                        <div class="label">總預算(億)</div>
+                    </div>
+                    <div class="pen-stat-divider"></div>
+                    <div class="pen-stat-block">
+                        <div class="val" style="color:#c63f3f;">-</div>
+                        <div class="label">刪減%</div>
+                    </div>
+                    <div class="pen-stat-divider"></div>
+                    <div class="pen-stat-block">
+                        <div class="val" style="color:#2b6fa5;">-</div>
+                        <div class="label">凍結%</div>
+                    </div>
+                    <div class="pen-stat-divider"></div>
+                    <div class="pen-stat-block">
+                        <div class="val" style="color:#959592;">-</div>
+                        <div class="label">通過%</div>
+                    </div>
+                </div>
+                <div style="height:120px;"><canvas class="js-chartBudgetPageReview" id="chartBudgetPageReview"></canvas>
+                </div>
+                <div class="js-bp-review-caption" id="bp-review-caption"
+                    style="text-align:center;color:#666;font-size:0.9rem;margin-top:10px;">請選擇機關以查看審查結果比例</div>
+            </div>
+
+            <div id="section-search" class="pen-section-head">
+                <div class="pen-divider"></div>
+                <div class="pen-head-row">
+                    <div class="pen-triangle"></div>
+                    <h3>預算計畫搜尋</h3>
+                </div>
+                <div class="pen-divider"></div>
+            </div>
+            <p class="article-text" style="text-align:center;margin-bottom:1rem;">搜尋預算計畫名稱或機關名稱，查看審查結果</p>
+            <div class="pen-search-bar">
+                <input type="text" class="js-search-budget-input" placeholder="輸入關鍵字 (如: 國防, 潛艦, 凍結...)" oninput="handleSearchBudget(this.value)">
+                <button type="button" onclick="handleSearchBudget(document.querySelector('.js-search-budget-input').value)">搜尋</button>
+            </div>
+            <div class="pen-hot-keywords">
+                <span style="font-weight:600;color:var(--primary-color);">大家都在關心：</span>
+                <span class="pen-keyword-chip"
+                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='國防';handleSearchBudget('國防')">國防</span>
+                <span class="pen-keyword-chip"
+                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='潛艦';handleSearchBudget('潛艦')">潛艦</span>
+                <span class="pen-keyword-chip"
+                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='數位發展';handleSearchBudget('數位發展')">數位發展</span>
+                <span class="pen-keyword-chip"
+                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='社會福利';handleSearchBudget('社會福利')">社會福利</span>
+            </div>
+            <div class="js-results-container-budget" id="results-container-budget">
+                <p style="text-align:center;color:#999;padding:30px;font-size:1.1rem;">請輸入關鍵字開始搜尋...</p>
+            </div>
+            <div id="pagination-budget" class="pagination-container js-pagination-budget"></div>
+        </section>
+
+        <section id="page-legislator" class="page-section">
+            <div class="pen-section-head" style="margin-top:2rem;">
+                <div class="pen-divider"></div>
+                <div class="pen-head-row">
+                    <div class="pen-triangle"></div>
+                    <h3>立委把關紀錄</h3>
+                </div>
+                <div class="pen-divider"></div>
+            </div>
+            <p class="article-text" style="text-align:center;margin-bottom:1.5rem;">查看各立委對中央政府總預算案的提案紀錄</p>
+            <div id="demo-badge-leg" class="demo-mode-badge" style="text-align:center;">⚠️ 測試資料模式</div>
+            <div class="pen-filter-row" style="margin-bottom:1.5rem;">
+                <span style="font-weight:600;margin-right:12px;">依黨籍篩選：</span>
+                <div class="filter-btn-group">
+                    <button class="filter-tag active" data-party="all" onclick="filterLegislators('all')">全部</button>
+                    <button class="filter-tag" data-party="民進黨" onclick="filterLegislators('民進黨')">民進黨</button>
+                    <button class="filter-tag" data-party="國民黨" onclick="filterLegislators('國民黨')">國民黨</button>
+                    <button class="filter-tag" data-party="民眾黨" onclick="filterLegislators('民眾黨')">民眾黨</button>
+                    <button class="filter-tag" data-party="無黨籍" onclick="filterLegislators('無黨籍')">無黨籍</button>
+                </div>
+            </div>
+            <div class="card" style="border-radius:var(--pencil-radius-lg);">
+                <p style="text-align:center;color:#777;font-weight:500;margin-bottom:20px;">點擊委員卡片可查看詳細提案內容</p>
+                <div class="legislator-grid js-leg-container-c" id="leg-container-c"></div>
+            </div>
+        </section>
+    </main>
+
+    <button type="button" id="float-back-top" class="float-back-top js-float-back-top" aria-label="回到頁首"
+        title="回到頁首">↑</button>
+
+    <script src="./vs-modules/dom-map.js" defer></script>
+    <script src="./vs-modules/navigation-state.js" defer></script>
+    <script src="./vs-modules/data-contract.js" defer></script>
+    <script src="./vs-modules/data-loader.js" defer></script>
+    <script src="./vs-modules/search-engine.js" defer></script>
+    <script src="./vs-modules/dashboard-renderers.js" defer></script>
+    <script src="./vs-modules/modal-renderers.js" defer></script>
+    <script src="./main_vs.js?v=178" defer></script>
+</body>
+
+</html>
