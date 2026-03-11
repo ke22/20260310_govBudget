@@ -60,6 +60,20 @@ const categoryColorMap = {
     '其他': '#8e8e93'
 };
 
+// Diverging palette for charts/figures (negative ↔ zero ↔ positive). Use for growth, deltas, above/below baseline.
+const CHART_DIVERGING_RED_BLUE = ['#b2182b', '#ef8a62', '#f7f7f7', '#67a9cf', '#2166ac'];
+/** @param {number} value - e.g. growth %
+ *  @param {number} zero - baseline (default 0)
+ *  @param {number} step - magnitude for strong red/blue (default 10)
+ */
+function getDivergingColor(value, zero = 0, step = 10) {
+    if (value == null || value === '') return CHART_DIVERGING_RED_BLUE[2];
+    const v = Number(value);
+    if (v < zero) return v <= zero - step ? CHART_DIVERGING_RED_BLUE[0] : CHART_DIVERGING_RED_BLUE[1];
+    if (v > zero) return v >= zero + step ? CHART_DIVERGING_RED_BLUE[4] : CHART_DIVERGING_RED_BLUE[3];
+    return CHART_DIVERGING_RED_BLUE[2];
+}
+
 // Multi-page detection: which page are we on?
 const currentPage = (() => {
     const cl = document.body.classList;
@@ -153,6 +167,32 @@ function getPartyTheme(partyOrName) {
 
 function toSvgDataUri(svg) {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function initScrollReveal() {
+    const targets = Array.from(document.querySelectorAll('.animate-in'));
+    if (!targets.length) return;
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+        targets.forEach(el => el.classList.add('is-in'));
+        return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+        targets.forEach(el => el.classList.add('is-in'));
+        return;
+    }
+
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-in');
+            io.unobserve(entry.target);
+        });
+    }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+
+    targets.forEach(el => io.observe(el));
 }
 
 function makeCaucusAvatarDataUri(label, partyOrName) {
@@ -813,6 +853,13 @@ function renderHomeCutFreezeCards() {
         else el.textContent = formatCurrency(stats.freezeTotal);
     });
 
+    // Apply YoY (較去年) placeholders; when prior-year data exists, can show % here
+    const cutYoyEls = document.querySelectorAll(".js-summary-cut-yoy");
+    const freezeYoyEls = document.querySelectorAll(".js-summary-freeze-yoy");
+    const yoyPlaceholder = '—';
+    cutYoyEls.forEach((el) => { el.textContent = yoyPlaceholder; });
+    freezeYoyEls.forEach((el) => { el.textContent = yoyPlaceholder; });
+
     const cutNoteEls = document.querySelectorAll(".js-summary-cut-note");
     const freezeNoteEls = document.querySelectorAll(".js-summary-freeze-note");
     const showCutNote = (stats.cutCount === 0 && stats.cutTotal === 0);
@@ -1305,16 +1352,40 @@ function processPageBData(data) {
     renderRankList('rank-plan-freeze', [...planArray].sort((a, b) => b.freeze - a.freeze).slice(0, 5), 'freeze');
 }
 
-// [v142] Restored
+// [v142] Restored; party filter + sort applied together
 function filterLegislators(party) {
-    document.querySelectorAll('.filter-tag').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.party === party) btn.classList.add('active');
+    const btns = document.querySelectorAll('.filter-tag');
+    if (btns.length) {
+        btns.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.party === party) btn.classList.add('active');
+        });
+    }
+    applyLegislatorFilterAndSort();
+}
+
+function sortLegislators(data, sortBy, order) {
+    const key = sortBy || '刪減案數';
+    const asc = order === 'asc';
+    return [...data].sort((a, b) => {
+        const va = Number(a[key]) || 0;
+        const vb = Number(b[key]) || 0;
+        return asc ? va - vb : vb - va;
     });
-    let filtered = [];
-    if (party === 'all') { filtered = allDataPageC; }
-    else { filtered = allDataPageC.filter(r => (r['黨籍'] || '').includes(party)); }
-    renderLegislatorGrid(filtered);
+}
+
+function applyLegislatorFilterAndSort() {
+    const container = document.querySelector(".js-leg-container-c");
+    if (!container || !allDataPageC || allDataPageC.length === 0) return;
+    const activeBtn = document.querySelector('.filter-tag.active');
+    const party = (activeBtn && activeBtn.dataset.party) ? activeBtn.dataset.party : 'all';
+    let filtered = party === 'all' ? allDataPageC : allDataPageC.filter(r => (r['黨籍'] || '').includes(party));
+    const sortByEl = document.getElementById('leg-sort-by');
+    const orderEl = document.getElementById('leg-sort-order');
+    const sortBy = (sortByEl && sortByEl.value) || '刪減案數';
+    const order = (orderEl && orderEl.value) || 'desc';
+    const sorted = sortLegislators(filtered, sortBy, order);
+    renderLegislatorGrid(sorted);
 }
 
 // [v142] Restored
@@ -1421,9 +1492,11 @@ function updateMinistryStats() {
         if (totalLastYear === 0) {
             growthEl.innerText = "無去年資料";
             growthEl.className = 'val js-val-growth';
+            growthEl.style.color = '';
         } else {
             growthEl.innerText = (growth > 0 ? '+' : '') + growth.toFixed(1) + '%';
             growthEl.className = 'val js-val-growth ' + (growth > 0 ? 'm-trend-up' : 'm-trend-down');
+            growthEl.style.color = getDivergingColor(growth);
         }
     }
 
@@ -1445,8 +1518,8 @@ function updateMinistryStats() {
         const ctxPie = document.querySelector(".js-chartMinistryPie").getContext('2d');
         if (chartMinistryPie) chartMinistryPie.destroy();
         chartMinistryPie = new Chart(ctxPie, {
-            type: 'doughnut',
-            data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors }] },
+            type: 'pie',
+            data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 1, borderColor: '#f7f8fb' }] },
         });
     }
 }
@@ -2361,6 +2434,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initFloatNavCollapseMenu();
     initScrollToTriggers();
     initRankSwitches();
+    initScrollReveal();
 
     // Handle hash-based scroll (from cross-page links like index.html#section-review-progress)
     if (window.location.hash) {
@@ -2383,6 +2457,10 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             renderHomeStatusChart();
             renderHomeCutFreezeCards();
+            // Apply timeline data (page-d) on overview
+            if (allDataPageD && allDataPageD.length > 0 && typeof renderTimeline === 'function') {
+                renderTimeline(allDataPageD);
+            }
 
             if (isDemoMode) {
                 document.querySelectorAll('.demo-mode-badge').forEach(el => el.style.display = 'block');

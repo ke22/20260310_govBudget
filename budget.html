@@ -20,6 +20,8 @@
 
 <body class="page page-budget">
 
+    <a href="#main-content" class="skip-link">跳至主內容</a>
+
     <div id="loader" class="loading-overlay js-loader">
         <div class="spinner"></div>
         <p style="margin-top:var(--space-5); color:#8e8e93; font-weight:500; font-size:0.9375rem;">資料讀取中，請稍候...</p>
@@ -217,7 +219,7 @@
         </div>
     </div>
 
-    <main>
+    <main id="main-content">
         <section id="page-budget" class="page-section active">
             <div class="pen-section-head" style="margin-top:2rem;">
                 <div class="pen-divider"></div>
@@ -295,10 +297,12 @@
                 <span class="pen-keyword-chip"
                     onclick="this.closest('section').querySelector('.pen-search-bar input').value='社會福利';handleSearchBudget('社會福利')">社會福利</span>
             </div>
-            <div class="js-results-container-budget" id="results-container-budget">
-                <p style="text-align:center;color:#999;padding:30px;font-size:1.1rem;">請輸入關鍵字開始搜尋...</p>
+            <div class="card card-results-budget" style="margin-bottom:2.5rem;border-radius:var(--pencil-radius-lg);padding:2rem 2.5rem;">
+                <div class="js-results-container-budget" id="results-container-budget">
+                    <p style="text-align:center;color:#999;padding:30px;font-size:1.1rem;">請輸入關鍵字開始搜尋...</p>
+                </div>
+                <div id="pagination-budget" class="pagination-container js-pagination-budget"></div>
             </div>
-            <div id="pagination-budget" class="pagination-container js-pagination-budget"></div>
         </section>
     </main>
 

@@ -20,6 +20,8 @@
 
 <body class="page page-legislators">
 
+    <a href="#main-content" class="skip-link">跳至主內容</a>
+
     <div id="loader" class="loading-overlay js-loader">
         <div class="spinner"></div>
         <p style="margin-top:var(--space-5); color:#8e8e93; font-weight:500; font-size:0.9375rem;">資料讀取中，請稍候...</p>
@@ -103,7 +105,7 @@
         </div>
     </div>
 
-    <main>
+    <main id="main-content">
         <section id="page-legislator" class="page-section active">
             <div class="pen-section-head" style="margin-top:2rem;">
                 <div class="pen-divider"></div>
@@ -123,6 +125,20 @@
                     <button class="filter-tag" data-party="國民黨" onclick="filterLegislators('國民黨')">國民黨</button>
                     <button class="filter-tag" data-party="民眾黨" onclick="filterLegislators('民眾黨')">民眾黨</button>
                     <button class="filter-tag" data-party="無黨籍" onclick="filterLegislators('無黨籍')">無黨籍</button>
+                </div>
+            </div>
+            <div class="pen-filter-row pen-sort-row" style="margin-bottom:1.5rem;">
+                <span class="pen-sort-row__label">排序：</span>
+                <div class="pen-sort-row__controls">
+                    <select id="leg-sort-by" class="pen-sort-select" aria-label="排序依據" onchange="applyLegislatorFilterAndSort()">
+                        <option value="刪減案數">刪減案數</option>
+                        <option value="凍結案數">凍結案數</option>
+                        <option value="主決議數">主決議數</option>
+                    </select>
+                    <select id="leg-sort-order" class="pen-sort-select" aria-label="排序方向" onchange="applyLegislatorFilterAndSort()">
+                        <option value="desc" selected>由高到低</option>
+                        <option value="asc">由低到高</option>
+                    </select>
                 </div>
             </div>
             <div class="card" style="border-radius:var(--pencil-radius-lg);">
