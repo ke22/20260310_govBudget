@@ -49,32 +49,32 @@
       <table>
         <thead><tr><th>Token</th><th>Hex</th><th>Role</th></tr></thead>
         <tbody>
-          <tr><td class="anchor">Hero blue</td><td>#315493</td><td>Primary brand, CTAs</td></tr>
+          <tr><td class="anchor">Hero blue</td><td>#355899</td><td>Primary brand, CTAs</td></tr>
           <tr><td>Hero blue soft / softer</td><td>#97b1de, #c3d4f0</td><td>Secondary emphasis, highlights</td></tr>
           <tr><td class="anchor">Text</td><td>#1c1c1e, #636366</td><td>Primary and muted text</td></tr>
           <tr><td class="anchor">Background & surface</td><td>#ffffff, #f7f8fb</td><td>Page bg, cards, panels</td></tr>
-          <tr><td class="anchor">Arrow red</td><td>#ce696d</td><td>Data/story accent</td></tr>
+          <tr><td class="anchor">Arrow red</td><td>#c76a6e</td><td>Data/story accent</td></tr>
         </tbody>
       </table>
 
       <h3>2. Status (審查狀態)</h3>
-      <p>Cut #c63f3f, Freeze #5591bf, Pass #1b9431, Main resolution #1c1c1e. No change. (pass-blue #5591bf = chart/UI mid-blue, not “approved”; pass = green.)</p>
+      <p>Cut #b84848, Freeze #5a8fc4, Pass #2a8f3e, Main resolution #1c1c1e. (pass-blue #5a8fc4 = chart/UI mid-blue, not “approved”; pass = green.)</p>
 
       <h3>3. Chart diverging</h3>
-      <p>pos-2 → #315493 (hero blue), zero → #f7f8fb (surface). Neg-2/neg-1/pos-1 unchanged.</p>
+      <p>neg-2 #a82d3a, neg-1 #d4866a, zero #f7f8fb (surface), pos-1 #5a8fc4, pos-2 #2d5f9e.</p>
 
       <h3>4. Category colors — don’t use one color per category</h3>
       <p>Reuse <strong>3 families + neutrals</strong> so the UI stays clean. Group by meaning, then assign one hue (or gray) per group. Different categories can share the same hex; differentiate by label/context.</p>
       <table>
         <thead><tr><th>Family</th><th>Token / Hex</th><th>Budget categories (政事別)</th></tr></thead>
         <tbody>
-          <tr><td>Blue (policy/core)</td><td>hero blue #315493, freeze #5591bf, hero soft #97b1de</td><td>一般政務, 經濟發展, 國防, 教育科學文化</td></tr>
-          <tr><td>Red/rose (people)</td><td>arrow red #ce696d, cut #c63f3f</td><td>社會福利, 退休撫卹</td></tr>
+          <tr><td>Blue (policy/core)</td><td>hero blue #355899, freeze #5a8fc4, hero soft #97b1de</td><td>一般政務, 經濟發展, 國防, 教育科學文化</td></tr>
+          <tr><td>Red/rose (people)</td><td>arrow red #c76a6e, cut #b84848</td><td>社會福利, 退休撫卹</td></tr>
           <tr><td>Neutral</td><td>border #c7c7cc, surface #e5e5ea, muted #8e8e93</td><td>債務還本付息, 補助及其他, 其他</td></tr>
-          <tr><td>Env / 環境 (teal)</td><td>--pen-color-env #2d6b5c</td><td>社區發展及環境保護</td></tr>
+          <tr><td>Env / 環境 (teal)</td><td>--pen-color-env #326d5e</td><td>社區發展及環境保護</td></tr>
         </tbody>
       </table>
-      <p>Applied mapping: 一般政務→#315493, 經濟發展→#5591bf, 國防→#97b1de, 教育科學文化→#7a9fcf; 社會福利→#ce696d, 退休撫卹→#c63f3f; 社區發展及環境保護→#2d6b5c (teal); 補助及其他→#e5e5ea (略深灰，避免白底消失); 債務還本付息→#c7c7cc, 其他→#8e8e93.</p>
+      <p>Applied mapping: 一般政務→#355899, 經濟發展→#5a8fc4, 國防→#97b1de, 教育科學文化→#7a9fcf; 社會福利→#c76a6e, 退休撫卹→#b84848; 社區發展及環境保護→#326d5e (teal); 補助及其他→#e5e5ea (略深灰，避免白底消失); 債務還本付息→#c7c7cc, 其他→#8e8e93.</p>
 
       <h3>5. Usage & accessibility</h3>
       <ul>
@@ -91,20 +91,20 @@
           <tr><td>Surface</td><td>--pen-color-surface</td><td>#f7f8fb</td></tr>
           <tr><td>Text</td><td>--pen-color-text</td><td>#1c1c1e</td></tr>
           <tr><td>Text muted</td><td>--pen-color-text-muted</td><td>#636366</td></tr>
-          <tr><td>Hero blue</td><td>--pen-color-hero-blue</td><td>#315493</td></tr>
+          <tr><td>Hero blue</td><td>--pen-color-hero-blue</td><td>#355899</td></tr>
           <tr><td>Hero blue soft</td><td>--pen-color-hero-blue-soft</td><td>#97b1de</td></tr>
           <tr><td>Hero blue softer</td><td>--pen-color-hero-blue-softer</td><td>#c3d4f0</td></tr>
-          <tr><td>Arrow red</td><td>--pen-color-arrow-red</td><td>#ce696d</td></tr>
-          <tr><td>Cut</td><td>--pen-color-cut</td><td>#c63f3f</td></tr>
-          <tr><td>Freeze</td><td>--pen-color-freeze</td><td>#5591bf</td></tr>
-          <tr><td>Pass</td><td>--pen-color-pass</td><td>#1b9431</td></tr>
+          <tr><td>Arrow red</td><td>--pen-color-arrow-red</td><td>#c76a6e</td></tr>
+          <tr><td>Cut</td><td>--pen-color-cut</td><td>#b84848</td></tr>
+          <tr><td>Freeze</td><td>--pen-color-freeze</td><td>#5a8fc4</td></tr>
+          <tr><td>Pass</td><td>--pen-color-pass</td><td>#2a8f3e</td></tr>
           <tr><td>Border</td><td>--pen-color-border</td><td>#c7c7cc</td></tr>
-          <tr><td>Chart pos-2</td><td>--chart-diverging-pos-2</td><td>#315493</td></tr>
+          <tr><td>Chart pos-2</td><td>--chart-diverging-pos-2</td><td>#2d5f9e</td></tr>
           <tr><td>Chart zero</td><td>--chart-diverging-zero</td><td>#f7f8fb</td></tr>
-          <tr><td>Env / 環境</td><td>--pen-color-env (optional)</td><td>#2d6b5c</td></tr>
+          <tr><td>Env / 環境</td><td>--pen-color-env</td><td>#326d5e</td></tr>
         </tbody>
       </table>
-      <p><strong>Implementation:</strong> styles_vs.css: set --chart-diverging-pos-2 and --chart-diverging-zero; optional --pen-color-env: #2d6b5c. main_vs.js categoryColorMap: use hex values above (補助及其他 #e5e5ea, 社區發展及環境保護 #2d6b5c).</p>
+      <p><strong>Implementation:</strong> styles_vs.css: set tokens above (hero/status/party/chart + env). main_vs.js categoryColorMap: use hex values above (補助及其他 #e5e5ea, 社區發展及環境保護 #326d5e).</p>
 
       <h3>7. Saturation / Lightness harmony</h3>
       <p>Chromatic colors use one S band (≈40–55%) and 2–3 L levels (Dark 35–42%, Mid 50–58%, Light 70–78%) so the palette feels like one family. Neutrals unchanged.</p>
@@ -133,9 +133,9 @@
       <h3>8. 優化建議 (Optimization suggestions)</h3>
       <ul>
         <li><strong>「其他」過多：</strong>畫面上同時出現「補助及其他」與「其他」兩類易混淆。若數據量不大可考慮合併；若並存，在視覺上給予更明顯區隔（例如邊框、標籤或圖例說明），避免使用者混淆。</li>
-        <li><strong>環境保護的顏色：</strong>「社區發展及環境保護」目前用深黑 #1c1c1e，在預算視覺化中偏重。環境保護常聯想綠/青，可從藍色系微調出一組綠色調（例如青綠 #2d6b5c 或 #3d7a6e），讓該項支出更易辨識且語意一致。</li>
+        <li><strong>環境保護的顏色：</strong>「社區發展及環境保護」目前用深黑 #1c1c1e，在預算視覺化中偏重。環境保護常聯想綠/青，可從藍色系微調出一組綠色調（例如青綠 #326d5e），讓該項支出更易辨識且語意一致。</li>
         <li><strong>#f4f6f8 對比：</strong>「補助及其他」的背景色 #f4f6f8 非常淡，若網頁背景也是白，該區塊可能「消失」。建議改為略深的灰（如 #e5e5ea）或在使用處加邊框/線條以維持辨識度。</li>
-        <li><strong>深色背景上的文字對比：</strong>深藍 #315493 和深灰 #1c1c1e 上的文字須確保對比度（Accessibility）。白字 #ffffff 在兩者上約 5.5:1 與 16:1，大字/按鈕可過 AA；小字或手機上建議以 4.5:1 為目標並實機檢查，必要時略加深背景或加粗字體。</li>
+        <li><strong>深色背景上的文字對比：</strong>深藍 #355899（或 chart pos-2 #2d5f9e）和深灰 #1c1c1e 上的文字須確保對比度（Accessibility）。小字或手機上建議以 4.5:1 為目標並實機檢查，必要時略加深背景或加粗字體。</li>
       </ul>
 
       <h3>9. AccessLint-style a11y checklist</h3>
@@ -173,7 +173,7 @@
       <h2>Hero blue</h2>
       <p class="palette-note" style="font-size:0.8rem; color:var(--pen-color-text-muted); margin-bottom:0.5rem;">深色塊上文字請用 #fff，實機檢查對比 ≥4.5:1</p>
       <div class="swatch-grid">
-        <div class="swatch swatch--dark"><div class="swatch__block" style="background: var(--pen-color-hero-blue);"></div><div class="swatch__label"><strong>hero-blue</strong>#315493</div></div>
+        <div class="swatch swatch--dark"><div class="swatch__block" style="background: var(--pen-color-hero-blue);"></div><div class="swatch__label"><strong>hero-blue</strong>#355899</div></div>
         <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-hero-blue-soft);"></div><div class="swatch__label"><strong>hero-blue-soft</strong>#97b1de</div></div>
         <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-hero-blue-softer);"></div><div class="swatch__label"><strong>hero-blue-softer</strong>#c3d4f0</div></div>
       </div>
@@ -219,7 +219,7 @@
       <h2>UI & borders</h2>
       <div class="swatch-grid">
         <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-border);"></div><div class="swatch__label"><strong>border</strong>#c7c7cc</div></div>
-        <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-pass-blue);"></div><div class="swatch__label"><strong>pass-blue</strong>#5591bf</div></div>
+        <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-pass-blue);"></div><div class="swatch__label"><strong>pass-blue</strong>#5a8fc4</div></div>
         <div class="swatch"><div class="swatch__block" style="background: var(--pen-color-freeze-blue);"></div><div class="swatch__label"><strong>freeze-blue</strong>#97b1de</div></div>
         <div class="swatch"><div class="swatch__block" style="background: var(--pencil-light-freeze);"></div><div class="swatch__label"><strong>pencil-light-freeze</strong>#aac8df</div></div>
       </div>

@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>立委把關 — 中央政府總預算觀測站</title>
+    <meta name="description" content="立委把關頁：依黨籍與指標瀏覽各立法委員在115年度中央政府總預算案中的刪減案與凍結案提案紀錄。">
+    <link rel="canonical" href="legislators.html">
+    <meta property="og:title" content="立委把關 — 中央政府總預算觀測站">
+    <meta property="og:description" content="查看各立委對中央政府總預算案的刪減與凍結提案紀錄，了解立委如何把關預算。">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="zh_TW">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="立委把關 — 中央政府總預算觀測站">
+    <meta name="twitter:description" content="瀏覽立委預算提案紀錄，包含刪減案、凍結案與主決議，掌握各立委如何監督預算。">
     <link rel="icon" href="data:,">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -107,7 +116,7 @@
 
     <main id="main-content">
         <section id="page-legislator" class="page-section active">
-            <div class="pen-section-head" style="margin-top:2rem;">
+            <div class="pen-section-head mt-2rem">
                 <div class="pen-divider"></div>
                 <div class="pen-head-row">
                     <div class="pen-triangle"></div>
@@ -141,7 +150,7 @@
                     </select>
                 </div>
             </div>
-            <div class="card" style="border-radius:var(--pencil-radius-lg);">
+            <div class="card">
                 <p style="text-align:center;color:#777;font-weight:500;margin-bottom:20px;">點擊委員卡片可查看詳細提案內容</p>
                 <div class="legislator-grid js-leg-container-c" id="leg-container-c"></div>
             </div>
@@ -194,6 +203,10 @@
     <button type="button" id="float-back-top" class="float-back-top js-float-back-top" aria-label="回到頁首"
         title="回到頁首">↑</button>
 
+    <button type="button" class="tour-fab js-tour-start" aria-haspopup="dialog" aria-label="開啟功能導覽">
+        導覽
+    </button>
+
     <script src="./vs-modules/dom-map.js" defer></script>
     <script src="./vs-modules/navigation-state.js" defer></script>
     <script src="./vs-modules/data-contract.js" defer></script>
@@ -201,7 +214,7 @@
     <script src="./vs-modules/search-engine.js" defer></script>
     <script src="./vs-modules/dashboard-renderers.js" defer></script>
     <script src="./vs-modules/modal-renderers.js" defer></script>
-    <script src="./main_vs.js?v=178" defer></script>
+    <script src="./main_vs.js?v=181" defer></script>
 </body>
 
 </html>

@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中央政府總預算觀測站</title>
+    <meta name="description" content="中央政府總預算觀測站總覽頁：從總數到各部會、各計畫，一次掌握115年度中央政府總預算案審查進度、刪減與凍結金額及分配概況。">
+    <link rel="canonical" href="index.html">
+    <meta property="og:title" content="中央政府總預算觀測站 — 總覽">
+    <meta property="og:description" content="以互動圖表與數據呈現115年度中央政府總預算案，快速了解整體審查進度與部會刪凍概況。">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="zh_TW">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="中央政府總預算觀測站 — 總覽">
+    <meta name="twitter:description" content="總覽中央政府預算審查進度、刪減與凍結金額，掌握今年預算案全貌。">
     <link rel="icon" href="data:,">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -199,7 +208,7 @@
                             <defs>
                                 <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
                                     orient="auto">
-                                    <polygon points="0 0, 10 3.5, 0 7" fill="#315493" />
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="var(--secondary-color)" />
                                 </marker>
                             </defs>
                             <path id="dynamic-arrow" class="bill-arrow-line js-dynamic-arrow"
@@ -213,7 +222,7 @@
                 </div>
 
                 <!-- Top 5 雙欄矩陣：部會 / 工作計畫 -->
-                <div class="card" style="padding: 2.5rem; margin-bottom: 2.5rem;">
+                <div class="card" style="padding: 2.5rem; margin-top: 2.5rem; margin-bottom: 2.5rem;">
                     <div id="section-agency-review-home" class="ranking-container" style="margin-top: 0;">
 
                         <!-- 左：部會機關 -->
@@ -421,7 +430,7 @@
                                 </div>
                                 <div class="pen-stat-divider"></div>
                                 <div class="pen-stat-block">
-                                    <div class="val js-val-growth" style="color:#c63f3f;" id="val-growth">-</div>
+                                    <div class="val js-val-growth" style="color:var(--danger-color);" id="val-growth">-</div>
                                     <div class="label">增減幅度</div>
                                 </div>
                             </div>
@@ -497,6 +506,10 @@
     <button type="button" id="float-back-top" class="float-back-top js-float-back-top" aria-label="回到頁首"
         title="回到頁首">↑</button>
 
+    <button type="button" class="tour-fab js-tour-start" aria-haspopup="dialog" aria-label="開啟功能導覽">
+        導覽
+    </button>
+
     <script src="./vs-modules/dom-map.js" defer></script>
     <script src="./vs-modules/navigation-state.js" defer></script>
     <script src="./vs-modules/data-contract.js" defer></script>
@@ -504,7 +517,68 @@
     <script src="./vs-modules/search-engine.js" defer></script>
     <script src="./vs-modules/dashboard-renderers.js" defer></script>
     <script src="./vs-modules/modal-renderers.js" defer></script>
-    <script src="./main_vs.js?v=178" defer></script>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.has('debugLayout')) return;
+
+            const el = document.createElement('pre');
+            el.id = 'debug-layout-metrics';
+            el.style.cssText = [
+                'position:fixed',
+                'left:8px',
+                'bottom:8px',
+                'z-index:99999',
+                'max-width:calc(100vw - 16px)',
+                'white-space:pre-wrap',
+                'background:rgba(10,10,12,.9)',
+                'color:#eaeaf0',
+                'padding:10px 12px',
+                'border-radius:12px',
+                'box-shadow:0 12px 30px rgba(0,0,0,.35)',
+                'font:12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+            ].join(';');
+            document.body.appendChild(el);
+
+            const fmt = (n) => (typeof n === 'number' ? Math.round(n * 100) / 100 : n);
+            const rectFor = (sel) => {
+                const node = document.querySelector(sel);
+                if (!node) return { sel, found: false };
+                const r = node.getBoundingClientRect();
+                return {
+                    sel,
+                    found: true,
+                    x: fmt(r.x),
+                    y: fmt(r.y),
+                    w: fmt(r.width),
+                    h: fmt(r.height),
+                    right: fmt(r.right)
+                };
+            };
+
+            const measure = () => {
+                const de = document.documentElement;
+                const body = document.body;
+                const rows = [];
+                rows.push(`[layout] location=${window.location.pathname}${window.location.search}`);
+                rows.push(`[layout] viewport(innerWidth)=${window.innerWidth}`);
+                rows.push(`[layout] visualViewport.width=${window.visualViewport?.width ?? 'n/a'}`);
+                rows.push(`[layout] screen.width=${window.screen?.width ?? 'n/a'}`);
+                rows.push(`[layout] documentElement.clientWidth=${de.clientWidth}`);
+                rows.push(`[layout] body.scrollWidth=${body.scrollWidth}`);
+                rows.push('');
+                rows.push(JSON.stringify(rectFor('nav.float-nav'), null, 2));
+                rows.push(JSON.stringify(rectFor('h1.hero__title'), null, 2));
+                el.textContent = rows.join('\n');
+            };
+
+            window.addEventListener('load', measure, { once: true });
+            window.addEventListener('resize', measure);
+            setTimeout(measure, 350);
+            setTimeout(measure, 1200);
+        })();
+    </script>
+    <script src="./main_vs.js?v=181" defer></script>
 </body>
 
 </html>

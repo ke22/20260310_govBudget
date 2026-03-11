@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>查預算 — 中央政府總預算觀測站</title>
+    <meta name="description" content="查預算頁：依部會與機關篩選，或輸入關鍵字搜尋工作計畫，查看115年度中央政府總預算案的審查刪減與凍結結果。">
+    <link rel="canonical" href="budget.html">
+    <meta property="og:title" content="查預算 — 中央政府總預算觀測站">
+    <meta property="og:description" content="搜尋與瀏覽各項預算工作計畫的金額、用途與審查刪凍結果，掌握你關心的預算。">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="zh_TW">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="查預算 — 中央政府總預算觀測站">
+    <meta name="twitter:description" content="輸入關鍵字或依部會機關篩選，快速查詢115年度中央政府總預算案的預算計畫與審查結果。">
     <link rel="icon" href="data:,">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -221,7 +230,7 @@
 
     <main id="main-content">
         <section id="page-budget" class="page-section active">
-            <div class="pen-section-head" style="margin-top:2rem;">
+            <div class="pen-section-head mt-2rem">
                 <div class="pen-divider"></div>
                 <div class="pen-head-row">
                     <div class="pen-triangle"></div>
@@ -231,15 +240,15 @@
             </div>
             <p class="article-text" style="text-align:center;margin-bottom:1.5rem;">選擇部會與機關，查看該機關的預算審查結果分析</p>
             <div id="demo-badge-budget" class="demo-mode-badge" style="text-align:center;">⚠️ 測試資料模式：僅能搜尋「測試」或「國防」</div>
-            <div class="card" style="margin-bottom:2.5rem;border-radius:var(--pencil-radius-lg);padding:2rem 2.5rem;">
+            <div class="card card--roomy mb-2_5rem">
                 <div class="pen-filter-row">
-                    <span style="font-weight:600;margin-right:8px;">部會</span>
+                    <label class="pen-filter-label" for="bp-filter-ministry">部會</label>
                     <select id="bp-filter-ministry" class="ministry-select js-bp-filter-ministry"
                         style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
                         onchange="updateBudgetPageReview()">
                         <option value="">請選擇所屬部會</option>
                     </select>
-                    <span style="font-weight:600;margin-left:24px;margin-right:8px;">機關</span>
+                    <label class="pen-filter-label" for="bp-filter-unit">機關</label>
                     <select id="bp-filter-unit" class="ministry-select js-bp-filter-unit"
                         style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
                         onchange="updateBudgetPageReview()">
@@ -253,17 +262,17 @@
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:#c63f3f;">-</div>
+                        <div class="val" style="color:var(--danger-color);">-</div>
                         <div class="label">刪減%</div>
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:#2b6fa5;">-</div>
+                        <div class="val" style="color:var(--freeze-color);">-</div>
                         <div class="label">凍結%</div>
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:#959592;">-</div>
+                        <div class="val" style="color:var(--success-color);">-</div>
                         <div class="label">通過%</div>
                     </div>
                 </div>
@@ -283,6 +292,7 @@
             </div>
             <p class="article-text" style="text-align:center;margin-bottom:1rem;">搜尋預算計畫名稱或機關名稱，查看審查結果</p>
             <div class="pen-search-bar">
+                <label for="search-budget-input" class="visually-hidden">預算計畫搜尋</label>
                 <input type="text" id="search-budget-input" class="js-search-budget-input" placeholder="輸入關鍵字 (如: 國防, 潛艦, 凍結...)" oninput="handleSearchBudget(this.value)">
                 <button type="button" onclick="handleSearchBudget(document.querySelector('.js-search-budget-input').value)">搜尋</button>
             </div>
@@ -297,7 +307,7 @@
                 <span class="pen-keyword-chip"
                     onclick="this.closest('section').querySelector('.pen-search-bar input').value='社會福利';handleSearchBudget('社會福利')">社會福利</span>
             </div>
-            <div class="card card-results-budget" style="margin-bottom:2.5rem;border-radius:var(--pencil-radius-lg);padding:2rem 2.5rem;">
+            <div class="card card--roomy card-results-budget mb-2_5rem">
                 <div class="js-results-container-budget" id="results-container-budget">
                     <p style="text-align:center;color:#999;padding:30px;font-size:1.1rem;">請輸入關鍵字開始搜尋...</p>
                 </div>
@@ -352,6 +362,10 @@
     <button type="button" id="float-back-top" class="float-back-top js-float-back-top" aria-label="回到頁首"
         title="回到頁首">↑</button>
 
+    <button type="button" class="tour-fab js-tour-start" aria-haspopup="dialog" aria-label="開啟功能導覽">
+        導覽
+    </button>
+
     <script src="./vs-modules/dom-map.js" defer></script>
     <script src="./vs-modules/navigation-state.js" defer></script>
     <script src="./vs-modules/data-contract.js" defer></script>
@@ -359,7 +373,7 @@
     <script src="./vs-modules/search-engine.js" defer></script>
     <script src="./vs-modules/dashboard-renderers.js" defer></script>
     <script src="./vs-modules/modal-renderers.js" defer></script>
-    <script src="./main_vs.js?v=178" defer></script>
+    <script src="./main_vs.js?v=181" defer></script>
 </body>
 
 </html>

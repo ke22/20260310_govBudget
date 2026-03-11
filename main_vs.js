@@ -20,6 +20,23 @@ const dataSources = {
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
     Chart.defaults.plugins.legend.labels.pointStyle = 'rectRounded';
     Chart.defaults.plugins.legend.labels.boxWidth = 10;
+
+    const cssVar = (name, fallback) => {
+        try {
+            const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+            const s = String(v || '').trim();
+            return s || fallback;
+        } catch (_) {
+            return fallback;
+        }
+    };
+    // Stronger separation for stacked/adjacent segments (accessibility-first)
+    Chart.defaults.elements.bar.borderSkipped = false;
+    Chart.defaults.elements.bar.borderWidth = 2;
+    Chart.defaults.elements.bar.borderColor = cssVar('--chart-segment-border', 'rgba(247,248,251,0.96)');
+    Chart.defaults.elements.arc.borderWidth = 2;
+    Chart.defaults.elements.arc.borderColor = cssVar('--chart-segment-border', 'rgba(247,248,251,0.96)');
+    Chart.defaults.scale.grid.color = cssVar('--chart-grid', 'rgba(20,22,29,0.16)');
 })();
 
 // Mock Data
@@ -47,21 +64,79 @@ let chartPieA = null, chartB1 = null, chartB2 = null;
 
 let chartMilMndRatio = null, chartMilUnitRatio = null, chartMilMndCat = null, chartMilUnitCat = null;
 
+function cssVar(name, fallback) {
+    try {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+        const s = String(v || '').trim();
+        return s || fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+const CHART_COLORS = {
+    pass: cssVar('--pen-color-pass', '#2a8f3e'),
+    freeze: cssVar('--pen-color-freeze', '#5a8fc4'),
+    cut: cssVar('--pen-color-cut', '#b84848'),
+    hero: cssVar('--pen-color-hero-blue', '#355899'),
+    heroSoft: cssVar('--pen-color-pass-blue', '#3f78b8'),
+    heroSofter: cssVar('--pen-color-freeze-blue', '#6f95cf'),
+    neutralMid: cssVar('--chart-neutral-mid', '#b9bcc5'),
+    neutralLight: cssVar('--chart-neutral-light', '#e5e5ea'),
+    segmentBorder: cssVar('--chart-segment-border', 'rgba(247,248,251,0.96)')
+};
+
+function hexToRgba(hex, alpha = 1) {
+    const h = String(hex || '').replace('#', '').trim();
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    if (full.length !== 6) return `rgba(0,0,0,${alpha})`;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function isLightHex(hex) {
+    const h = String(hex || '').replace('#', '').trim();
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    if (full.length !== 6) return false;
+    const r = parseInt(full.slice(0, 2), 16) / 255;
+    const g = parseInt(full.slice(2, 4), 16) / 255;
+    const b = parseInt(full.slice(4, 6), 16) / 255;
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return lum > 0.74;
+}
+
 const categoryColorMap = {
-    '社會福利': '#ce696d',
+    '社會福利': '#c76a6e',
+    // Revert to the previous (original) category palette
     '教育科學文化': '#7a9fcf',
     '國防': '#97b1de',
-    '經濟發展': '#5591bf',
-    '一般政務': '#315493',
-    '退休撫卹': '#c63f3f',
+    '經濟發展': '#5a8fc4',
+    '一般政務': '#355899',
+    '退休撫卹': '#b84848',
     '債務還本付息': '#c7c7cc',
-    '補助及其他': '#f4f6f8',
-    '社區發展及環境保護': '#1c1c1e',
+    '補助及其他': '#e5e5ea',
+    '社區發展及環境保護': '#326d5e',
     '其他': '#8e8e93'
 };
 
+// Allocation (115年度預算結構) uses a dedicated high-distinctness palette
+// to match the reference “rainbow” look, without affecting other charts.
+const allocationColorMap = {
+    '社會福利': '#e74c3c',          // red
+    '教育科學文化': '#f0c808',      // yellow
+    '國防': '#086788',              // teal-blue
+    '經濟發展': '#2ecc71',          // green
+    '一般政務': '#9b59b6',          // purple
+    '退休撫卹': '#3498db',          // blue
+    '債務還本付息': '#e67e22',      // orange
+    '補助及其他': '#1abc9c',        // teal
+    '社區發展及環境保護': '#34495e' // slate
+};
+
 // Diverging palette for charts/figures (negative ↔ zero ↔ positive). Use for growth, deltas, above/below baseline.
-const CHART_DIVERGING_RED_BLUE = ['#b2182b', '#ef8a62', '#f7f7f7', '#67a9cf', '#2166ac'];
+const CHART_DIVERGING_RED_BLUE = ['#a82d3a', '#d4866a', cssVar('--chart-diverging-zero', '#f7f8fb'), cssVar('--chart-diverging-pos-1', '#3f78b8'), cssVar('--chart-diverging-pos-2', '#1f4e86')];
 /** @param {number} value - e.g. growth %
  *  @param {number} zero - baseline (default 0)
  *  @param {number} step - magnitude for strong red/blue (default 10)
@@ -82,6 +157,451 @@ const currentPage = (() => {
     if (cl.contains('page-other')) return 'other';
     return 'overview';
 })();
+
+const TOUR_STEPS = {
+    overview: [
+        {
+            target: '#heading-review-progress',
+            title: '先看「審查進度」這張卡',
+            body: '這裡用時間軸整理預算案目前卡在哪個節點，先快速掌握大局。'
+        },
+        {
+            target: '#heading-allocation-115',
+            title: '再看「分配與審查概況」',
+            body: '這區說明預算如何分配，以及整體刪減／凍結概況，幫你抓出重點領域。'
+        }
+    ],
+    budget: [
+        {
+            target: '#bp-filter-ministry',
+            focus: 'target',
+            title: '第 1 步：先選部會',
+            body: '先從下拉選單選一個部會，畫面下方的審查比例圖會一起更新。'
+        },
+        {
+            target: '#bp-filter-unit',
+            focus: 'target',
+            title: '第 2 步：細到機關',
+            body: '再選擇該部會底下的具體機關，查看這個機關被刪減／凍結／通過的比例。'
+        },
+        {
+            target: '.js-search-budget-input',
+            focus: 'target',
+            title: '第 3 步：用關鍵字找計畫',
+            body: '輸入「國防、潛艦、凍結…」等關鍵字，或點熱門標籤，快速找到關心的工作計畫。'
+        },
+        {
+            target: '#results-container-budget',
+            focus: 'target',
+            title: '第 4 步：點結果看詳情',
+            body: '在結果列表中點任一筆，可打開詳情視窗，查看預算用途與具體審查意見。'
+        }
+    ],
+    legislators: [
+        {
+            target: '.filter-tag[data-party="all"]',
+            focus: 'target',
+            title: '先用黨籍縮小範圍',
+            body: '先選擇「全部」或特定政黨，縮小你要觀察的立委範圍。'
+        },
+        {
+            target: '#leg-sort-by',
+            focus: 'target',
+            title: '再用排序找出關鍵立委',
+            body: '改變排序依據（刪減案數／凍結案數／主決議數），找出在預算審查上最積極的立委。'
+        },
+        {
+            target: '#leg-container-c',
+            focus: 'target',
+            title: '點卡片看提案明細',
+            body: '點任一立委卡片，即可打開詳情，查看他（她）提出的刪減／凍結案與理由。'
+        }
+    ],
+    other: [
+        {
+            target: '#page-other',
+            focus: 'target',
+            title: '這頁是說明與資料來源',
+            body: '這裡集中相關新聞、資料來源、誤差提醒與使用方式，不會有互動圖表。'
+        },
+        {
+            target: '#page-other h3',
+            focus: 'target',
+            title: '往下看「使用方式」',
+            body: '如果想馬上開始操作，可直接往下捲到「使用方式」段落照著做。'
+        }
+    ]
+};
+
+function initTour() {
+    const startBtn = document.querySelector('.js-tour-start');
+    if (!startBtn) return;
+
+    const pageSteps = TOUR_STEPS[currentPage] || [];
+
+    const storageKeyDismiss = `tourDismissed:${currentPage}`;
+    const storageKeyAutoShown = `tourAutoShown:${currentPage}`;
+
+    let overlay = null;
+    let spotlight = null;
+    let dialog = null;
+    let titleEl = null;
+    let bodyEl = null;
+    let progressEl = null;
+    let btnBack = null;
+    let btnNext = null;
+    let btnSkip = null;
+    let btnDone = null;
+
+    let activeIndex = 0;
+    let lastFocus = null;
+
+    const safeGet = (key) => {
+        try { return localStorage.getItem(key); } catch (_) { return null; }
+    };
+    const safeSet = (key, val) => {
+        try { localStorage.setItem(key, val); } catch (_) { /* ignore */ }
+    };
+
+    const getStepTarget = (step) => {
+        if (!step || !step.target) return null;
+        return document.querySelector(step.target);
+    };
+
+    const getStepFocusEl = (step, target) => {
+        if (!target) return null;
+
+        const focus = step && step.focus;
+
+        if (focus === 'card') {
+            return target.closest?.('.card') || target;
+        }
+
+        if (focus && typeof focus === 'object' && focus.selector) {
+            const card = target.closest?.('.card');
+            const sub = card ? card.querySelector(focus.selector) : null;
+            return sub || target;
+        }
+
+        // Default: spotlight the target element itself for more precise guidance.
+        return target;
+    };
+
+    const findNextValidIndex = (start, direction = 1) => {
+        let i = start;
+        while (i >= 0 && i < pageSteps.length) {
+            if (getStepTarget(pageSteps[i])) return i;
+            i += direction;
+        }
+        return -1;
+    };
+
+    const validStepCount = pageSteps.reduce((count, step) => {
+        return count + (getStepTarget(step) ? 1 : 0);
+    }, 0);
+
+    const buildOverlay = () => {
+        overlay = document.createElement('div');
+        overlay.className = 'tour-overlay';
+        overlay.innerHTML = `
+            <div class="tour-backdrop" data-tour-close></div>
+            <div class="tour-spotlight" aria-hidden="true"></div>
+            <div class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
+                <div class="tour-dialog__head">
+                    <div class="tour-dialog__meta">
+                        <div class="tour-progress" id="tour-progress"></div>
+                    </div>
+                    <button type="button" class="tour-close" data-tour-close aria-label="關閉導覽">×</button>
+                </div>
+                <h2 class="tour-title" id="tour-title" tabindex="-1"></h2>
+                <div class="tour-body" id="tour-body"></div>
+                <div class="tour-actions">
+                    <button type="button" class="tour-btn tour-btn--ghost" data-tour-back>上一步</button>
+                    <button type="button" class="tour-btn tour-btn--ghost" data-tour-skip>略過</button>
+                    <div class="tour-actions__spacer"></div>
+                    <button type="button" class="tour-btn tour-btn--primary" data-tour-next>下一步</button>
+                    <button type="button" class="tour-btn tour-btn--primary" data-tour-done>完成</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        spotlight = overlay.querySelector('.tour-spotlight');
+        dialog = overlay.querySelector('.tour-dialog');
+        titleEl = overlay.querySelector('#tour-title');
+        bodyEl = overlay.querySelector('#tour-body');
+        progressEl = overlay.querySelector('#tour-progress');
+
+        btnBack = overlay.querySelector('[data-tour-back]');
+        btnNext = overlay.querySelector('[data-tour-next]');
+        btnSkip = overlay.querySelector('[data-tour-skip]');
+        btnDone = overlay.querySelector('[data-tour-done]');
+
+        overlay.querySelectorAll('[data-tour-close]').forEach((el) => {
+            el.addEventListener('click', () => closeTour({ persistDismissal: false }));
+        });
+
+        btnBack.addEventListener('click', () => go(-1));
+        btnNext.addEventListener('click', () => go(1));
+        btnSkip.addEventListener('click', () => closeTour({ persistDismissal: true }));
+        btnDone.addEventListener('click', () => closeTour({ persistDismissal: true }));
+
+        overlay.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeTour({ persistDismissal: false });
+                return;
+            }
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                go(1);
+                return;
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                go(-1);
+                return;
+            }
+            if (e.key === 'Tab') {
+                trapFocus(e);
+            }
+        });
+    };
+
+    const trapFocus = (e) => {
+        if (!dialog) return;
+        const focusables = dialog.querySelectorAll(
+            'button,[href],input,select,textarea,[tabindex]:not([tabindex=\"-1\"])'
+        );
+        const list = Array.from(focusables).filter((el) => !el.hasAttribute('disabled'));
+        if (list.length === 0) return;
+        const first = list[0];
+        const last = list[list.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey) {
+            if (active === first || !dialog.contains(active)) {
+                e.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (active === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    };
+
+    let scrollRaf = 0;
+    let stepResizeObserver = null;
+
+    const positionForStep = (idx, { shouldScroll } = { shouldScroll: true }) => {
+        const step = pageSteps[idx];
+        const target = getStepTarget(step);
+        const focusEl = getStepFocusEl(step, target);
+        if (!focusEl) return;
+
+        if (shouldScroll) {
+            focusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        const measureAndPlace = () => {
+            const rectFocus = focusEl.getBoundingClientRect();
+            const rectTarget = target ? target.getBoundingClientRect() : rectFocus;
+            const pad = 10;
+            const safe = 8;
+            const nav = document.querySelector('.js-float-nav');
+            const navRect = nav ? nav.getBoundingClientRect() : null;
+            const safeTop = Math.max(safe, (navRect ? navRect.bottom : 0) + 8);
+            const safeBottom = safe;
+            const rawLeft = rectFocus.left - pad;
+            const rawTop = rectFocus.top - pad;
+            const rawRight = rectFocus.right + pad;
+            const rawBottom = rectFocus.bottom + pad;
+
+            const left = Math.max(safe, Math.min(rawLeft, window.innerWidth - safe));
+            const top = Math.max(safeTop, Math.min(rawTop, window.innerHeight - safeBottom));
+            const right = Math.max(left + 8, Math.min(rawRight, window.innerWidth - safe));
+            const bottom = Math.max(top + 8, Math.min(rawBottom, window.innerHeight - safeBottom));
+
+            const w = right - left;
+            const h = bottom - top;
+
+            spotlight.style.left = `${left}px`;
+            spotlight.style.top = `${top}px`;
+            spotlight.style.width = `${w}px`;
+            spotlight.style.height = `${h}px`;
+
+            const gap = 16;
+            const isNarrow = window.innerWidth < 720;
+            const dialogRect = dialog.getBoundingClientRect();
+
+            const spaceBelow = (window.innerHeight - safeBottom) - rectFocus.bottom;
+            const spaceAbove = rectFocus.top - safeTop;
+
+            const canBelow = spaceBelow >= (dialogRect.height + gap);
+            const canAbove = spaceAbove >= (dialogRect.height + gap);
+
+            const bottomSheet = isNarrow || (!canBelow && !canAbove);
+            if (bottomSheet) {
+                dialog.style.left = `var(--space-4)`;
+                dialog.style.right = `var(--space-4)`;
+                dialog.style.top = 'auto';
+                dialog.style.bottom = `var(--space-4)`;
+                dialog.style.transform = 'none';
+                return;
+            }
+
+            const dialogW = dialogRect.width || 360;
+            const safeX = safe;
+            const maxLeft = Math.max(safeX, window.innerWidth - safeX - dialogW);
+            const desiredLeft = rectTarget.left;
+            const leftPx = Math.min(maxLeft, Math.max(safeX, desiredLeft));
+
+            const placeBelow = canBelow;
+            if (placeBelow) {
+                dialog.style.left = `${leftPx}px`;
+                dialog.style.top = `${Math.min(window.innerHeight - safeBottom - dialogRect.height, rect.bottom + gap)}px`;
+                dialog.style.right = 'auto';
+                dialog.style.bottom = 'auto';
+                dialog.style.transform = 'none';
+            } else {
+                // place above
+                dialog.style.left = `${leftPx}px`;
+                dialog.style.top = `${Math.max(safeTop + gap, rect.top - gap)}px`;
+                dialog.style.right = 'auto';
+                dialog.style.bottom = 'auto';
+                dialog.style.transform = 'translateY(-100%)';
+            }
+        };
+
+        // Wait for smooth scroll to settle (stable rect) before placing.
+        if (!shouldScroll) {
+            measureAndPlace();
+            return;
+        }
+
+        let last = null;
+        let stableFrames = 0;
+        const start = performance.now();
+        const timeoutMs = 700;
+        const eps = 1;
+        const tick = () => {
+            const r = focusEl.getBoundingClientRect();
+            if (last) {
+                const dx = Math.abs(r.left - last.left);
+                const dy = Math.abs(r.top - last.top);
+                if (dx < eps && dy < eps) stableFrames += 1;
+                else stableFrames = 0;
+            }
+            last = r;
+
+            const timedOut = (performance.now() - start) > timeoutMs;
+            if (stableFrames >= 2 || timedOut) {
+                measureAndPlace();
+                return;
+            }
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    };
+
+    const renderStep = (idx) => {
+        const step = pageSteps[idx];
+        const target = getStepTarget(step);
+        const focusEl = getStepFocusEl(step, target);
+        if (!step || !target || !focusEl) return;
+
+        const stepNum = idx + 1;
+        const total = pageSteps.length;
+        progressEl.textContent = `${stepNum} / ${total}`;
+        titleEl.textContent = step.title || '';
+        bodyEl.textContent = step.body || '';
+
+        btnBack.style.display = idx === 0 ? 'none' : 'inline-flex';
+        const isLast = idx === total - 1;
+        btnNext.style.display = isLast ? 'none' : 'inline-flex';
+        btnDone.style.display = isLast ? 'inline-flex' : 'none';
+
+        // Keep overlay aligned even if the target resizes (charts render, fonts load, etc.)
+        if (stepResizeObserver) {
+            try { stepResizeObserver.disconnect(); } catch (_) { /* ignore */ }
+            stepResizeObserver = null;
+        }
+        if (typeof ResizeObserver !== 'undefined') {
+            stepResizeObserver = new ResizeObserver(() => {
+                if (!overlay) return;
+                positionForStep(activeIndex, { shouldScroll: false });
+            });
+            try { stepResizeObserver.observe(focusEl); } catch (_) { /* ignore */ }
+        }
+
+        positionForStep(idx, { shouldScroll: true });
+        titleEl.focus({ preventScroll: true });
+    };
+
+    const go = (delta) => {
+        const next = findNextValidIndex(activeIndex + delta, delta >= 0 ? 1 : -1);
+        if (next === -1) return;
+        activeIndex = next;
+        renderStep(activeIndex);
+    };
+
+    const closeTour = ({ persistDismissal }) => {
+        if (!overlay) return;
+        if (persistDismissal) safeSet(storageKeyDismiss, '1');
+        if (stepResizeObserver) {
+            try { stepResizeObserver.disconnect(); } catch (_) { /* ignore */ }
+            stepResizeObserver = null;
+        }
+        overlay.remove();
+        overlay = null;
+        spotlight = null;
+        dialog = null;
+        if (lastFocus && typeof lastFocus.focus === 'function') {
+            lastFocus.focus({ preventScroll: true });
+        } else {
+            startBtn.focus({ preventScroll: true });
+        }
+    };
+
+    const openTour = ({ auto } = { auto: false }) => {
+        if (!pageSteps || pageSteps.length === 0) return;
+        lastFocus = document.activeElement;
+
+        if (!overlay) buildOverlay();
+
+        const firstValid = findNextValidIndex(0, 1);
+        if (firstValid === -1) return;
+        activeIndex = firstValid;
+        renderStep(activeIndex);
+
+        if (auto) safeSet(storageKeyAutoShown, '1');
+    };
+
+    startBtn.addEventListener('click', () => openTour({ auto: false }));
+
+    // Auto-start once per page for first-time visitors (skippable).
+    const dismissed = safeGet(storageKeyDismiss) === '1';
+    const autoShown = safeGet(storageKeyAutoShown) === '1';
+    if (!dismissed && !autoShown && validStepCount >= 2) {
+        setTimeout(() => openTour({ auto: true }), 600);
+    }
+
+    window.addEventListener('resize', () => {
+        if (!overlay) return;
+        positionForStep(activeIndex, { shouldScroll: false });
+    });
+
+    window.addEventListener('scroll', () => {
+        if (!overlay) return;
+        if (scrollRaf) return;
+        scrollRaf = requestAnimationFrame(() => {
+            scrollRaf = 0;
+            if (!overlay) return;
+            positionForStep(activeIndex, { shouldScroll: false });
+        });
+    }, { passive: true });
+}
 
 function initFloatNavCollapseMenu() {
     const nav = document.querySelector('.js-float-nav');
@@ -159,10 +679,10 @@ function isCaucusName(name) {
 
 function getPartyTheme(partyOrName) {
     const s = (partyOrName || '').toString();
-    if (s.includes('民進')) return { bg: '#127A4A', fg: '#FFFFFF' };
-    if (s.includes('國民')) return { bg: '#1E4DB7', fg: '#FFFFFF' };
-    if (s.includes('民眾')) return { bg: '#0D9AA6', fg: '#FFFFFF' };
-    return { bg: '#6B7280', fg: '#FFFFFF' };
+    if (s.includes('民進')) return { bg: '#2a8f3e', fg: '#FFFFFF' };
+    if (s.includes('國民')) return { bg: '#354899', fg: '#FFFFFF' };
+    if (s.includes('民眾')) return { bg: '#4a9e9e', fg: '#FFFFFF' };
+    return { bg: '#8e8e93', fg: '#FFFFFF' };
 }
 
 function toSvgDataUri(svg) {
@@ -225,7 +745,13 @@ function makeCaucusAvatarDataUri(label, partyOrName) {
 
 function getLegislatorPhotoSrc(name, party) {
     if (!name) return null;
-    if (isCaucusName(name)) return makeCaucusAvatarDataUri(name, party || name);
+    if (isCaucusName(name)) {
+        const s = ((party || '') + ' ' + name).toString();
+        if (s.includes('民進')) return './img/dpp.svg';
+        if (s.includes('國民')) return './img/kmt..png';
+        if (s.includes('民眾')) return './img/tpp.svg';
+        return makeCaucusAvatarDataUri(name, party || name);
+    }
     return `./photos/${name}.jpg`;
 }
 // --- [v172] 工作內容分頁：機關審查結果儀表板 ---
@@ -348,10 +874,10 @@ function updateBudgetPageReview() {
 
     // 更新文字說明
     captionEl.innerHTML = `
-        <span style="color:#1b9431; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
+        <span style="color:#1c1c1e; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
         通過：<b>${pctPass}%</b> | 
-        <span style="color:#c63f3f">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> | 
-        <span style="color:#5591bf">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
+        <span style="color:${CHART_COLORS.cut}">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> |
+        <span style="color:${CHART_COLORS.freeze}">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
     `;
 
     // 繪製圖表
@@ -363,9 +889,9 @@ function updateBudgetPageReview() {
         data: {
             labels: ['審查結果'],
             datasets: [
-                { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 50 },
-                { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 50 },
-                { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 50 }
+                { label: '通過', data: [totalPass], backgroundColor: CHART_COLORS.pass, barThickness: 50 },
+                { label: '凍結', data: [totalFreeze], backgroundColor: CHART_COLORS.freeze, barThickness: 50 },
+                { label: '刪減', data: [totalCut], backgroundColor: CHART_COLORS.cut, barThickness: 50 }
             ]
         },
         options: {
@@ -445,7 +971,9 @@ function renderDetailChartsA(row) {
             labels: pieLabels,
             datasets: [{
                 data: pieData,
-                backgroundColor: ['#c63f3f', '#7a9fcf', '#315493', '#5591bf', '#97b1de']
+                backgroundColor: [CHART_COLORS.cut, categoryColorMap['教育科學文化'], CHART_COLORS.hero, CHART_COLORS.heroSoft, CHART_COLORS.heroSofter],
+                borderWidth: 2,
+                borderColor: CHART_COLORS.segmentBorder
             }]
         },
         options: {
@@ -534,8 +1062,8 @@ function showBranchDetail(index, branch, total, allBranches) {
         data: {
             labels: ['預算比例'],
             datasets: [
-                { label: branch.name, data: [branch.amount], backgroundColor: '#315493', barPercentage: 0.6 },
-                { label: '其他計畫', data: [restAmount], backgroundColor: '#f4f6f8', barPercentage: 0.6 }
+                { label: branch.name, data: [branch.amount], backgroundColor: CHART_COLORS.hero, barPercentage: 0.6 },
+                { label: '其他計畫', data: [restAmount], backgroundColor: CHART_COLORS.neutralLight, barPercentage: 0.6 }
             ]
         },
         options: {
@@ -573,7 +1101,7 @@ function renderDetailChartsB(row) {
 
     const ctx1 = document.querySelector(".js-chartBResult").getContext('2d');
     if (chartB1) chartB1.destroy();
-    chartB1 = new Chart(ctx1, { type: 'bar', data: { labels: ['結果'], datasets: [{ label: '通過', data: [pass], backgroundColor: '#1b9431' }, { label: '凍結', data: [freeze], backgroundColor: '#5591bf' }, { label: '刪減', data: [cut], backgroundColor: '#c63f3f' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }, plugins: { tooltip: tooltipCurrencyCallback } } });
+    chartB1 = new Chart(ctx1, { type: 'bar', data: { labels: ['結果'], datasets: [{ label: '通過', data: [pass], backgroundColor: CHART_COLORS.pass }, { label: '凍結', data: [freeze], backgroundColor: CHART_COLORS.freeze }, { label: '刪減', data: [cut], backgroundColor: CHART_COLORS.cut }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }, plugins: { tooltip: tooltipCurrencyCallback } } });
 
     const cCut = parseMoney(row['委員會刪減']);
     const cFreeze = parseMoney(row['委員會凍結']);
@@ -587,7 +1115,7 @@ function renderDetailChartsB(row) {
     chartB2 = new Chart(ctx2, {
         type: 'bar', data: {
             labels: ['委員會', '院會表決', '通案'],
-            datasets: [{ label: '刪減', data: [cCut, nCut, fCut], backgroundColor: '#c63f3f' }, { label: '凍結', data: [cFreeze, nFreeze, fFreeze], backgroundColor: '#5591bf' }]
+            datasets: [{ label: '刪減', data: [cCut, nCut, fCut], backgroundColor: CHART_COLORS.cut }, { label: '凍結', data: [cFreeze, nFreeze, fFreeze], backgroundColor: CHART_COLORS.freeze }]
         }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tooltipCurrencyCallback } }
     });
 }
@@ -601,26 +1129,30 @@ function renderMainCharts() {
             datasets: [{
                 label: '歲出總額',
                 data: [3034974371000, 3132468909000, 2881782095000, 2719098790000, 2262064189000, 2161517070000, 2102196982000, 2022029637000, 1991773071000, 1997995520000],
-                backgroundColor: '#315493',      // 預設深藍
-                hoverBackgroundColor: '#5591bf', // hover 填色淺藍
-                borderColor: '#315493',
-                hoverBorderColor: '#97b1de'      // hover 邊框更淡藍
+                backgroundColor: CHART_COLORS.hero,
+                hoverBackgroundColor: CHART_COLORS.heroSoft,
+                borderColor: CHART_COLORS.hero,
+                hoverBorderColor: CHART_COLORS.heroSofter
             }]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tooltipCurrencyCallback }, scales: { y: { ticks: { callback: function (value) { return formatCurrency(value); } } } } }
     });
 
     const budgetDetails = [
-        { label: '社會福利', value: 831800000000, color: 'rgba(231, 76, 60, 0.5)', arrow: '▲', display: '8318億' },
-        { label: '教育科學文化', value: 556600000000, color: 'rgba(240, 200, 8, 0.5)', arrow: '▼', display: '5566億' },
-        { label: '國防', value: 548800000000, color: 'rgba(8, 103, 136, 0.5)', arrow: '▲', display: '5488億' },
-        { label: '經濟發展', value: 427500000000, color: 'rgba(46, 204, 113, 0.5)', arrow: '▲', display: '4275億' },
-        { label: '一般政務', value: 302600000000, color: 'rgba(155, 89, 182, 0.5)', arrow: '▲', display: '3026億' },
-        { label: '退休撫卹', value: 184400000000, color: 'rgba(52, 152, 219, 0.5)', arrow: '▲', display: '1844億' },
-        { label: '債務還本付息', value: 106300000000, color: 'rgba(230, 126, 34, 0.5)', arrow: '–', display: '1063億' },
-        { label: '補助及其他', value: 50400000000, color: 'rgba(26, 188, 156, 0.5)', arrow: '▼', display: '504億' },
-        { label: '社區發展及環境保護', value: 26600000000, color: 'rgba(52, 73, 94, 0.5)', arrow: '▼', display: '266億' }
-    ];
+        { label: '社會福利', value: 831800000000, arrow: '▲', display: '8318億' },
+        { label: '教育科學文化', value: 556600000000, arrow: '▼', display: '5566億' },
+        { label: '國防', value: 548800000000, arrow: '▲', display: '5488億' },
+        { label: '經濟發展', value: 427500000000, arrow: '▲', display: '4275億' },
+        { label: '一般政務', value: 302600000000, arrow: '▲', display: '3026億' },
+        { label: '退休撫卹', value: 184400000000, arrow: '▲', display: '1844億' },
+        { label: '債務還本付息', value: 106300000000, arrow: '–', display: '1063億' },
+        { label: '補助及其他', value: 50400000000, arrow: '▼', display: '504億' },
+        { label: '社區發展及環境保護', value: 26600000000, arrow: '▼', display: '266億' }
+    ].map((d) => {
+        const hex = allocationColorMap[d.label] || categoryColorMap[d.label] || categoryColorMap['其他'] || '#8e8e93';
+        // Keep legend chips solid, but let the banknote background show through the chart.
+        return { ...d, colorHex: hex, color: hexToRgba(hex, 0.58) };
+    });
 
     const ctx = document.querySelector(".js-chartAllocation").getContext('2d');
     const totalBudget = budgetDetails.reduce((acc, curr) => acc + curr.value, 0);
@@ -635,8 +1167,8 @@ function renderMainCharts() {
     if (legendContainer) {
         let legendHtml = '';
         budgetDetails.forEach((ds, index) => {
-            let color = ds.color.replace('0.5', '1');
-            legendHtml += `<div class="legend-item" onclick="updateBillOverlay(${index}, '${ds.label}', '${ds.display}', '${ds.arrow}')"><div class="legend-color-box" style="background-color:${color}; border:none;"></div><span>${ds.label}</span></div>`;
+            const border = isLightHex(ds.colorHex) ? 'border:1px solid rgba(20,22,29,0.22);' : 'border:none;';
+            legendHtml += `<div class="legend-item" onclick="updateBillOverlay(${index}, '${ds.label}', '${ds.display}', '${ds.arrow}')"><div class="legend-color-box" style="background-color:${ds.colorHex}; ${border}"></div><span>${ds.label}</span></div>`;
         });
         legendContainer.innerHTML = legendHtml;
     }
@@ -913,9 +1445,9 @@ function renderHomeStatusChart() {
             data: {
                 labels: ['總體審查結果'],
                 datasets: [
-                    { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 40 },
-                    { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 40 },
-                    { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 40 }
+                    { label: '通過', data: [totalPass], backgroundColor: CHART_COLORS.pass, barThickness: 40 },
+                    { label: '凍結', data: [totalFreeze], backgroundColor: CHART_COLORS.freeze, barThickness: 40 },
+                    { label: '刪減', data: [totalCut], backgroundColor: CHART_COLORS.cut, barThickness: 40 }
                 ]
             },
             options: {
@@ -1047,7 +1579,8 @@ function closeModal(e, modalId) {
         window.ModalRenderers.hideModal(modalId);
         return;
     }
-    document.getElementById(modalId).style.display = 'none';
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = 'none';
 }
 
 async function jumpToProjectB(projectId) {
@@ -1510,7 +2043,7 @@ function updateMinistryStats() {
             type: 'bar',
             data: {
                 labels: ['今年預算', '去年預算'],
-                datasets: [{ label: '金額', data: [totalThisYear, totalLastYear], backgroundColor: ['#315493', '#d1d1d6'], barThickness: 40 }]
+                datasets: [{ label: '金額', data: [totalThisYear, totalLastYear], backgroundColor: [CHART_COLORS.hero, CHART_COLORS.neutralMid], barThickness: 40 }]
             },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tooltipCurrencyCallback }, scales: { x: { ticks: { callback: function (value) { return formatCurrency(value); } } } } }
         });
@@ -1519,7 +2052,7 @@ function updateMinistryStats() {
         if (chartMinistryPie) chartMinistryPie.destroy();
         chartMinistryPie = new Chart(ctxPie, {
             type: 'pie',
-            data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 1, borderColor: '#f7f8fb' }] },
+            data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 2, borderColor: CHART_COLORS.segmentBorder }] },
         });
     }
 }
@@ -1907,7 +2440,7 @@ function openUnifiedDetail(id) {
             document.querySelector(".js-caption-mil-mnd-ratio").innerText = `本計畫金額占${mndLabel.replace('所屬機關佔比（', '').replace('）', '')}預算 ${mndRatio}%`;
 
             chartMilMndRatio = new Chart(ctx1, {
-                type: 'bar', data: { labels: ['金額'], datasets: [{ label: '本計畫', data: [projectBudget], backgroundColor: '#c63f3f', stack: 'S0' }, { label: '機關其他', data: [mndTotalBudget - projectBudget], backgroundColor: '#f4f6f8', stack: 'S0' }] },
+                type: 'bar', data: { labels: ['金額'], datasets: [{ label: '本計畫', data: [projectBudget], backgroundColor: CHART_COLORS.cut, stack: 'S0' }, { label: '機關其他', data: [mndTotalBudget - projectBudget], backgroundColor: CHART_COLORS.neutralLight, stack: 'S0' }] },
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { display: false, stacked: true } }, plugins: { legend: { position: 'bottom' }, tooltip: tooltipCurrencyCallback } }
             });
 
@@ -1916,7 +2449,7 @@ function openUnifiedDetail(id) {
             const unitRatio = (unitTotalBudget > 0) ? (projectBudget / unitTotalBudget * 100).toFixed(2) : 0;
             document.querySelector(".js-caption-mil-unit-ratio").innerText = `本計畫金額占${unitLabel.replace('所屬機關佔比（', '').replace('）', '')}預算 ${unitRatio}%`;
             chartMilUnitRatio = new Chart(ctx2, {
-                type: 'bar', data: { labels: ['金額'], datasets: [{ label: '本計畫', data: [projectBudget], backgroundColor: '#c63f3f', stack: 'S0' }, { label: '單位其他', data: [unitTotalBudget - projectBudget], backgroundColor: '#f4f6f8', stack: 'S0' }] },
+                type: 'bar', data: { labels: ['金額'], datasets: [{ label: '本計畫', data: [projectBudget], backgroundColor: CHART_COLORS.cut, stack: 'S0' }, { label: '單位其他', data: [unitTotalBudget - projectBudget], backgroundColor: CHART_COLORS.neutralLight, stack: 'S0' }] },
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { display: false, stacked: true } }, plugins: { legend: { position: 'bottom' }, tooltip: tooltipCurrencyCallback } }
             });
 
@@ -1926,7 +2459,7 @@ function openUnifiedDetail(id) {
             const pCatData = catLabels.map(k => projectUsage[k]);
             const mndCatRest = catLabels.map(k => (mndUsageTotal[k] || 0) - (projectUsage[k] || 0));
             chartMilMndCat = new Chart(ctx3, {
-                type: 'bar', data: { labels: catLabels, datasets: [{ label: '本計畫', data: pCatData, backgroundColor: '#c63f3f', stack: 'S0' }, { label: '國防部其他', data: mndCatRest, backgroundColor: '#f4f6f8', stack: 'S0' }] },
+                type: 'bar', data: { labels: catLabels, datasets: [{ label: '本計畫', data: pCatData, backgroundColor: CHART_COLORS.cut, stack: 'S0' }, { label: '國防部其他', data: mndCatRest, backgroundColor: CHART_COLORS.neutralLight, stack: 'S0' }] },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', axis: 'y', intersect: false }, scales: { x: { stacked: true, ticks: { callback: function (value) { return formatCurrency(value); } } }, y: { stacked: true } }, plugins: { legend: { position: 'bottom' }, tooltip: tooltipCurrencyCallback },
                     onHover: function (e, activeEls) { if (!activeEls.length) return; const idx = activeEls[0].index; const label = this.data.labels[idx]; const pVal = pCatData[idx]; const tVal = mndUsageTotal[label]; const pct = (tVal > 0) ? (pVal / tVal * 100).toFixed(2) : 0; document.querySelector(".js-caption-mil-mnd-cat").innerHTML = `本計畫<b>${label}</b>占<b>國防部${label}</b>預算 <b>${pct}%</b>`; }
@@ -1938,7 +2471,7 @@ function openUnifiedDetail(id) {
             const ctx4 = document.querySelector(".js-chartMilUnitCat").getContext('2d');
             const unitCatRest = catLabels.map(k => (unitUsageTotal[k] || 0) - (projectUsage[k] || 0));
             chartMilUnitCat = new Chart(ctx4, {
-                type: 'bar', data: { labels: catLabels, datasets: [{ label: '本計畫', data: pCatData, backgroundColor: '#c63f3f', stack: 'S0' }, { label: '單位其他', data: unitCatRest, backgroundColor: '#f4f6f8', stack: 'S0' }] },
+                type: 'bar', data: { labels: catLabels, datasets: [{ label: '本計畫', data: pCatData, backgroundColor: CHART_COLORS.cut, stack: 'S0' }, { label: '單位其他', data: unitCatRest, backgroundColor: CHART_COLORS.neutralLight, stack: 'S0' }] },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', axis: 'y', intersect: false }, scales: { x: { stacked: true, ticks: { callback: function (value) { return formatCurrency(value); } } }, y: { stacked: true } }, plugins: { legend: { position: 'bottom' }, tooltip: tooltipCurrencyCallback },
                     onHover: function (e, activeEls) { if (!activeEls.length) return; const idx = activeEls[0].index; const label = this.data.labels[idx]; const pVal = pCatData[idx]; const tVal = unitUsageTotal[label]; const pct = (tVal > 0) ? (pVal / tVal * 100).toFixed(2) : 0; document.querySelector(".js-caption-mil-unit-cat").innerHTML = `本計畫<b>${label}</b>占<b>該單位${label}</b>預算 <b>${pct}%</b>`; }
@@ -1970,8 +2503,8 @@ function openUnifiedDetail(id) {
                 data: {
                     labels: ['金額'],
                     datasets: [
-                        { label: '本計畫', data: [projectBudget], backgroundColor: '#c63f3f', stack: 'Stack 0' },
-                        { label: '機關其他', data: [agencyStats.totalBudget - projectBudget], backgroundColor: '#f4f6f8', stack: 'Stack 0' }
+                        { label: '本計畫', data: [projectBudget], backgroundColor: CHART_COLORS.cut, stack: 'Stack 0' },
+                        { label: '機關其他', data: [agencyStats.totalBudget - projectBudget], backgroundColor: CHART_COLORS.neutralLight, stack: 'Stack 0' }
                     ]
                 },
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, display: false }, y: { display: false, stacked: true } }, plugins: { legend: { position: 'bottom' }, tooltip: tooltipCurrencyCallback } }
@@ -1990,8 +2523,8 @@ function openUnifiedDetail(id) {
                 data: {
                     labels: catLabels,
                     datasets: [
-                        { label: '本計畫', data: projectCatData, backgroundColor: '#c63f3f', stack: 'Stack 0' },
-                        { label: '機關其他', data: restCatData, backgroundColor: '#f4f6f8', stack: 'Stack 0' }
+                        { label: '本計畫', data: projectCatData, backgroundColor: CHART_COLORS.cut, stack: 'Stack 0' },
+                        { label: '機關其他', data: restCatData, backgroundColor: CHART_COLORS.neutralLight, stack: 'Stack 0' }
                     ]
                 },
                 options: {
@@ -2168,10 +2701,10 @@ function updateBudgetPageReview() {
 
     // 更新文字說明
     captionEl.innerHTML = `
-                <span style="color:#1b9431; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
+                <span style="color:#1c1c1e; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
                 通過：<b>${pctPass}%</b> | 
-                <span style="color:#c63f3f">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> | 
-                <span style="color:#5591bf">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
+                <span style="color:${CHART_COLORS.cut}">刪減：<b>${pctCut}%</b> (${formatCurrency(totalCut)})</span> |
+                <span style="color:${CHART_COLORS.freeze}">凍結：<b>${pctFreeze}%</b> (${formatCurrency(totalFreeze)})</span>
             `;
 
     // 繪製圖表
@@ -2183,9 +2716,9 @@ function updateBudgetPageReview() {
         data: {
             labels: ['審查結果'],
             datasets: [
-                { label: '通過', data: [totalPass], backgroundColor: '#1b9431', barThickness: 50 },
-                { label: '凍結', data: [totalFreeze], backgroundColor: '#5591bf', barThickness: 50 },
-                { label: '刪減', data: [totalCut], backgroundColor: '#c63f3f', barThickness: 50 }
+                { label: '通過', data: [totalPass], backgroundColor: CHART_COLORS.pass, barThickness: 50 },
+                { label: '凍結', data: [totalFreeze], backgroundColor: CHART_COLORS.freeze, barThickness: 50 },
+                { label: '刪減', data: [totalCut], backgroundColor: CHART_COLORS.cut, barThickness: 50 }
             ]
         },
         options: {
@@ -2435,6 +2968,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initScrollToTriggers();
     initRankSwitches();
     initScrollReveal();
+    initTour();
 
     // Handle hash-based scroll (from cross-page links like index.html#section-review-progress)
     if (window.location.hash) {
