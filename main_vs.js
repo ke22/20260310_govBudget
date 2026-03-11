@@ -161,13 +161,18 @@ const currentPage = (() => {
 const TOUR_STEPS = {
     overview: [
         {
+            target: '.js-float-nav',
+            title: '先認識上方導覽列',
+            body: '從這裡可以在「總覽／查預算／立委把關／更多資訊」之間切換，隨時回到你需要的頁面。'
+        },
+        {
             target: '#heading-review-progress',
-            title: '先看「審查進度」這張卡',
+            title: '再看「審查進度」這張卡',
             body: '這裡用時間軸整理預算案目前卡在哪個節點，先快速掌握大局。'
         },
         {
             target: '#heading-allocation-115',
-            title: '再看「分配與審查概況」',
+            title: '接著看「分配與審查概況」',
             body: '這區說明預算如何分配，以及整體刪減／凍結概況，幫你抓出重點領域。'
         }
     ],
@@ -199,7 +204,7 @@ const TOUR_STEPS = {
     ],
     legislators: [
         {
-            target: '.filter-tag[data-party="all"]',
+            target: '.filter-btn-group',
             focus: 'target',
             title: '先用黨籍縮小範圍',
             body: '先選擇「全部」或特定政黨，縮小你要觀察的立委範圍。'
@@ -217,20 +222,7 @@ const TOUR_STEPS = {
             body: '點任一立委卡片，即可打開詳情，查看他（她）提出的刪減／凍結案與理由。'
         }
     ],
-    other: [
-        {
-            target: '#page-other',
-            focus: 'target',
-            title: '這頁是說明與資料來源',
-            body: '這裡集中相關新聞、資料來源、誤差提醒與使用方式，不會有互動圖表。'
-        },
-        {
-            target: '#page-other h3',
-            focus: 'target',
-            title: '往下看「使用方式」',
-            body: '如果想馬上開始操作，可直接往下捲到「使用方式」段落照著做。'
-        }
-    ]
+    other: []
 };
 
 function initTour() {
@@ -326,6 +318,8 @@ function initTour() {
         `;
         document.body.appendChild(overlay);
 
+        document.body.classList.add('is-tour-scroll-locked');
+
         spotlight = overlay.querySelector('.tour-spotlight');
         dialog = overlay.querySelector('.tour-dialog');
         titleEl = overlay.querySelector('#tour-title');
@@ -407,11 +401,16 @@ function initTour() {
         const measureAndPlace = () => {
             const rectFocus = focusEl.getBoundingClientRect();
             const rectTarget = target ? target.getBoundingClientRect() : rectFocus;
-            const pad = 10;
+            const pad = 2;
             const safe = 8;
             const nav = document.querySelector('.js-float-nav');
             const navRect = nav ? nav.getBoundingClientRect() : null;
-            const safeTop = Math.max(safe, (navRect ? navRect.bottom : 0) + 8);
+            // Default: keep spotlight and dialog below the floating nav bar,
+            // but allow steps that spotlight the nav itself to use the very top.
+            const isNavStep = target && target.classList && target.classList.contains('js-float-nav');
+            const safeTop = isNavStep
+                ? safe
+                : Math.max(safe, (navRect ? navRect.bottom : 0) + 8);
             const safeBottom = safe;
             const rawLeft = rectFocus.left - pad;
             const rawTop = rectFocus.top - pad;
@@ -431,46 +430,124 @@ function initTour() {
             spotlight.style.width = `${w}px`;
             spotlight.style.height = `${h}px`;
 
+            const style = window.getComputedStyle(focusEl);
+            const radiusToken = style.borderRadius || style.borderTopLeftRadius || '16px';
+            const radiusPx = parseFloat(radiusToken);
+            const isPillControl = (el) => el && (
+                el.classList && el.classList.contains('js-float-nav') ||
+                el.id === 'bp-filter-ministry' || el.id === 'bp-filter-unit' ||
+                el.classList && (el.classList.contains('js-bp-filter-ministry') || el.classList.contains('js-bp-filter-unit') || el.classList.contains('js-search-budget-input'))
+            );
+            const isPill = isPillControl(target) || isPillControl(focusEl) ||
+                (!Number.isNaN(radiusPx) && radiusPx >= 100);
+            const isSquareControl = (el) => el && el.classList && el.classList.contains('filter-btn-group');
+            const targetRadius = isSquareControl(target) || isSquareControl(focusEl)
+                ? '0px'
+                : (isPill ? '9999px' : radiusToken);
+            spotlight.style.borderRadius = targetRadius;
+
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const backdrop = overlay.querySelector('.tour-backdrop');
+            if (backdrop) {
+                // Make a "hole" in the dimmed backdrop using CSS masks (outside stays dim; inside is transparent).
+                const insetTop = top;
+                const insetRight = vw - (left + w);
+                const insetBottom = vh - (top + h);
+                const insetLeft = left;
+                const hole = `inset(${insetTop}px ${insetRight}px ${insetBottom}px ${insetLeft}px round ${targetRadius})`;
+
+                // Standard properties (Firefox supports unprefixed mask-composite).
+                backdrop.style.maskImage = `linear-gradient(#000 0 0), linear-gradient(#000 0 0)`;
+                backdrop.style.maskSize = `100% 100%, 100% 100%`;
+                backdrop.style.maskRepeat = `no-repeat, no-repeat`;
+                backdrop.style.maskPosition = `0 0, 0 0`;
+                backdrop.style.maskClip = `border-box, border-box`;
+                backdrop.style.maskComposite = `exclude`;
+                backdrop.style.maskMode = `match-source`;
+                backdrop.style.maskOrigin = `border-box, border-box`;
+
+                // WebKit (Chrome/Safari): use -webkit-mask + destination-out.
+                backdrop.style.webkitMaskImage = `linear-gradient(#000 0 0), linear-gradient(#000 0 0)`;
+                backdrop.style.webkitMaskSize = `100% 100%, 100% 100%`;
+                backdrop.style.webkitMaskRepeat = `no-repeat, no-repeat`;
+                backdrop.style.webkitMaskPosition = `0 0, 0 0`;
+                backdrop.style.webkitMaskComposite = `destination-out`;
+
+                // Apply the hole shape to the second mask layer.
+                backdrop.style.maskClip = `border-box, ${hole}`;
+                backdrop.style.webkitMaskClip = `border-box, ${hole}`;
+            }
+
             const gap = 16;
             const isNarrow = window.innerWidth < 720;
             const dialogRect = dialog.getBoundingClientRect();
 
             const spaceBelow = (window.innerHeight - safeBottom) - rectFocus.bottom;
             const spaceAbove = rectFocus.top - safeTop;
+            const spaceRight = (window.innerWidth - safe) - rectFocus.right;
+            const spaceLeft = rectFocus.left - safe;
 
-            const canBelow = spaceBelow >= (dialogRect.height + gap);
-            const canAbove = spaceAbove >= (dialogRect.height + gap);
+            const dialogW = dialogRect.width || 360;
+            const dialogH = dialogRect.height || 220;
 
-            const bottomSheet = isNarrow || (!canBelow && !canAbove);
+            const canBelow = spaceBelow >= (dialogH + gap);
+            const canAbove = spaceAbove >= (dialogH + gap);
+            const canRight = spaceRight >= (dialogW + gap);
+            const canLeft = spaceLeft >= (dialogW + gap);
+
+            const bottomSheet = isNarrow || (!canRight && !canLeft && !canBelow && !canAbove);
             if (bottomSheet) {
                 dialog.style.left = `var(--space-4)`;
                 dialog.style.right = `var(--space-4)`;
                 dialog.style.top = 'auto';
                 dialog.style.bottom = `var(--space-4)`;
                 dialog.style.transform = 'none';
+                dialog.dataset.placement = 'bottom-sheet';
                 return;
             }
 
-            const dialogW = dialogRect.width || 360;
+            // Prefer placing beside the highlighted element (right/left), then fall back to below/above.
+            const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+            const maxTop = Math.max(safeTop, window.innerHeight - safeBottom - dialogH);
+            const desiredTop = rectFocus.top + (rectFocus.height / 2) - (dialogH / 2);
+            const topPx = clamp(desiredTop, safeTop, maxTop);
+
+            if (canRight || canLeft) {
+                const placeRight = canRight || !canLeft;
+                const leftPx = placeRight
+                    ? Math.min(window.innerWidth - safe - dialogW, rectFocus.right + gap)
+                    : Math.max(safe, rectFocus.left - gap - dialogW);
+
+                dialog.style.left = `${leftPx}px`;
+                dialog.style.top = `${topPx}px`;
+                dialog.style.right = 'auto';
+                dialog.style.bottom = 'auto';
+                dialog.style.transform = 'none';
+                dialog.dataset.placement = placeRight ? 'right' : 'left';
+                return;
+            }
+
+            // Vertical fallback: align with target's left edge (clamped).
             const safeX = safe;
             const maxLeft = Math.max(safeX, window.innerWidth - safeX - dialogW);
             const desiredLeft = rectTarget.left;
             const leftPx = Math.min(maxLeft, Math.max(safeX, desiredLeft));
 
-            const placeBelow = canBelow;
-            if (placeBelow) {
+            if (canBelow || !canAbove) {
                 dialog.style.left = `${leftPx}px`;
-                dialog.style.top = `${Math.min(window.innerHeight - safeBottom - dialogRect.height, rect.bottom + gap)}px`;
+                dialog.style.top = `${Math.min(window.innerHeight - safeBottom - dialogH, rect.bottom + gap)}px`;
                 dialog.style.right = 'auto';
                 dialog.style.bottom = 'auto';
                 dialog.style.transform = 'none';
+                dialog.dataset.placement = 'bottom';
             } else {
-                // place above
                 dialog.style.left = `${leftPx}px`;
                 dialog.style.top = `${Math.max(safeTop + gap, rect.top - gap)}px`;
                 dialog.style.right = 'auto';
                 dialog.style.bottom = 'auto';
                 dialog.style.transform = 'translateY(-100%)';
+                dialog.dataset.placement = 'top';
             }
         };
 
@@ -557,21 +634,26 @@ function initTour() {
         overlay = null;
         spotlight = null;
         dialog = null;
+        document.body.classList.remove('is-tour-scroll-locked');
         if (lastFocus && typeof lastFocus.focus === 'function') {
             lastFocus.focus({ preventScroll: true });
         } else {
             startBtn.focus({ preventScroll: true });
         }
+
+        if (persistDismissal && (currentPage === 'overview' || currentPage === 'budget' || currentPage === 'legislators')) {
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }
     };
 
     const openTour = ({ auto } = { auto: false }) => {
         if (!pageSteps || pageSteps.length === 0) return;
+        const firstValid = findNextValidIndex(0, 1);
+        if (firstValid === -1) return;
         lastFocus = document.activeElement;
 
         if (!overlay) buildOverlay();
 
-        const firstValid = findNextValidIndex(0, 1);
-        if (firstValid === -1) return;
         activeIndex = firstValid;
         renderStep(activeIndex);
 
@@ -610,6 +692,8 @@ function initFloatNavCollapseMenu() {
     const seg = nav.querySelector('.float-nav__seg');
     const btn = nav.querySelector('.js-float-nav-menuBtn');
     if (!seg || !btn) return;
+    const searchToggle = nav.querySelector('.js-nav-search-toggle');
+    const searchPopover = nav.querySelector('.js-nav-search-popover');
 
     const closeMenu = () => {
         nav.classList.remove('is-open');
@@ -617,6 +701,10 @@ function initFloatNavCollapseMenu() {
     };
 
     const openMenu = () => {
+        if (searchPopover && !searchPopover.hidden) {
+            searchPopover.hidden = true;
+            if (searchToggle) searchToggle.setAttribute('aria-expanded', 'false');
+        }
         nav.classList.add('is-open');
         btn.setAttribute('aria-expanded', 'true');
     };
@@ -1505,6 +1593,87 @@ function handleNavSearch(val) {
     } else {
         window.location.href = 'budget.html?q=' + encodeURIComponent((val || '').trim());
     }
+}
+
+function initNavKeywordSearch() {
+    const nav = document.querySelector('.js-float-nav');
+    if (!nav) return;
+    const toggle = nav.querySelector('.js-nav-search-toggle');
+    const popover = nav.querySelector('.js-nav-search-popover');
+    if (!toggle || !popover) return;
+    const form = popover.querySelector('.js-nav-search');
+    const input = popover.querySelector('.js-nav-search-input');
+    if (!form || !input) return;
+    const menuBtn = nav.querySelector('.js-float-nav-menuBtn');
+
+    const close = () => {
+        if (popover.hidden) return;
+        popover.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+    const open = () => {
+        if (!popover.hidden) return;
+        nav.classList.remove('is-open');
+        if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+        popover.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        setTimeout(() => input.focus(), 0);
+    };
+    const toggleOpen = () => {
+        if (popover.hidden) open();
+        else close();
+    };
+
+    toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleOpen();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (popover.hidden) return;
+        if (!nav.contains(e.target)) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        close();
+    });
+
+    const isLikelyLegislatorQuery = (keyword) => {
+        const s = (keyword || '').toString().trim();
+        if (!s) return false;
+        if (s.includes('黨團')) return true;
+        const compact = s.replace(/\s+/g, '');
+        if (/^[\u4e00-\u9fff]{2,4}$/.test(compact)) return true;
+        return false;
+    };
+
+    const submit = () => {
+        const keyword = (input.value || '').trim();
+        if (!keyword) return;
+        close();
+        if (isLikelyLegislatorQuery(keyword)) {
+            if (currentPage === 'legislators' && Array.isArray(allDataPageC) && allDataPageC.length > 0) {
+                const target = allDataPageC.find(r => String(r['委員姓名']).trim() === keyword);
+                if (target) {
+                    const str = encodeURIComponent(JSON.stringify(target));
+                    openDetailC(str);
+                    return;
+                }
+                handleNavSearch(keyword);
+                return;
+            }
+            window.location.href = 'legislators.html?name=' + encodeURIComponent(keyword) + '&fallback=1';
+            return;
+        }
+        handleNavSearch(keyword);
+    };
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submit();
+    });
 }
 
 // SPEC v1: 側欄點擊（外連 / 切頁 / 錨點）
@@ -2699,6 +2868,17 @@ function updateBudgetPageReview() {
     const pctCut = (totalBudget > 0) ? (totalCut / totalBudget * 100).toFixed(1) : 0;
     const pctFreeze = (totalBudget > 0) ? (totalFreeze / totalBudget * 100).toFixed(1) : 0;
 
+    // Update stat tiles (budget page only; safe if nodes missing)
+    const statBudgetEl = document.querySelector('.js-bp-stat-budget');
+    const statCutPctEl = document.querySelector('.js-bp-stat-cutpct');
+    const statFreezePctEl = document.querySelector('.js-bp-stat-freezepct');
+    const statPassPctEl = document.querySelector('.js-bp-stat-passpct');
+
+    if (statBudgetEl) statBudgetEl.textContent = totalBudget > 0 ? formatCurrency(totalBudget) : '—';
+    if (statCutPctEl) statCutPctEl.textContent = totalBudget > 0 ? `${pctCut}%` : '—';
+    if (statFreezePctEl) statFreezePctEl.textContent = totalBudget > 0 ? `${pctFreeze}%` : '—';
+    if (statPassPctEl) statPassPctEl.textContent = totalBudget > 0 ? `${pctPass}%` : '—';
+
     // 更新文字說明
     captionEl.innerHTML = `
                 <span style="color:#1c1c1e; font-weight:bold;">${titleText}</span> 總預算：${formatCurrency(totalBudget)}<br>
@@ -2965,6 +3145,7 @@ async function fetchData(pageId, silent = false) {
 window.addEventListener('DOMContentLoaded', () => {
     initFloatBackTop();
     initFloatNavCollapseMenu();
+    initNavKeywordSearch();
     initScrollToTriggers();
     initRankSwitches();
     initScrollReveal();
@@ -3056,6 +3237,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (target) {
                     const str = encodeURIComponent(JSON.stringify(target));
                     openDetailC(str);
+                } else if (params.get('fallback') === '1') {
+                    window.location.href = 'budget.html?q=' + encodeURIComponent(name);
                 }
             }
         });

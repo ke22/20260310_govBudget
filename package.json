@@ -1,0 +1,19 @@
+{
+  "name": "govbudget-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "http-server . -p 4173 -c-1 --silent",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --project=chromium --grep @smoke",
+    "test:a11y": "playwright test --grep @a11y",
+    "test:lighthouse": "lhci autorun",
+    "test:stress": "k6 run tests/load/stress.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@lhci/cli": "^0.14.0",
+    "@playwright/test": "^1.55.0",
+    "http-server": "^14.1.1"
+  }
+}

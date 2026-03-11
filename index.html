@@ -62,6 +62,29 @@
             <a href="legislators.html" class="float-nav__btn js-nav-legislator">立委把關</a>
             <a href="other.html" class="float-nav__btn js-nav-other">更多資訊</a>
         </div>
+        <button class="float-nav__iconBtn js-nav-search-toggle" type="button" aria-label="開啟搜尋"
+            aria-expanded="false" aria-controls="nav-search-popover">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.2-3.2"></path>
+            </svg>
+        </button>
+        <div id="nav-search-popover" class="float-nav__popover js-nav-search-popover" hidden>
+            <form class="float-nav__searchForm js-nav-search" role="search" aria-label="全站搜尋">
+                <span class="float-nav__searchIcon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" width="18" height="18">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="M20 20l-3.2-3.2"></path>
+                    </svg>
+                </span>
+                <label for="nav-search-input" class="visually-hidden">輸入關鍵字</label>
+                <input id="nav-search-input" class="float-nav__searchInput js-nav-search-input" type="search"
+                    placeholder="搜尋：預算 / 立委" autocomplete="off" />
+                <button class="float-nav__searchBtn js-nav-search-btn" type="submit" aria-label="搜尋">Go</button>
+            </form>
+        </div>
     </nav>
 
     <main id="main-content">
@@ -402,15 +425,15 @@
                         <div
                             style="background:var(--bg-secondary); padding:2rem 2.5rem; border-bottom:1px solid var(--separator);">
                             <div class="pen-filter-row" style="margin-top:0;">
-                                <span style="font-weight:600;;">部會</span>
+                                <label for="filter-ministry" style="font-weight:600;">部會</label>
                                 <select id="filter-ministry" class="ministry-select js-filter-ministry"
-                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px; background:#fff;"
+                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc; background:#fff;"
                                     onchange="updateMinistryStats()">
                                     <option value="">請選擇所屬部會</option>
                                 </select>
-                                <span style="font-weight:600;;">機關</span>
+                                <label for="filter-unit" style="font-weight:600;">機關</label>
                                 <select id="filter-unit" class="ministry-select js-filter-unit"
-                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px; background:#fff;"
+                                    style="border-radius:90px;padding:10px 20px;border:1px solid #ccc; background:#fff;"
                                     onchange="updateMinistryStats()">
                                     <option value="">請選擇主管機關 (全部)</option>
                                 </select>

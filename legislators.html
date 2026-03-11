@@ -48,6 +48,29 @@
             <img class="float-nav__mark" src="./img/cna_logo.svg" alt="" aria-hidden="true" />
             <span class="float-nav__title">總預算觀測站</span>
         </a>
+        <button class="float-nav__iconBtn js-nav-search-toggle" type="button" aria-label="開啟搜尋"
+            aria-expanded="false" aria-controls="nav-search-popover">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.2-3.2"></path>
+            </svg>
+        </button>
+        <div id="nav-search-popover" class="float-nav__popover js-nav-search-popover" hidden>
+            <form class="float-nav__searchForm js-nav-search" role="search" aria-label="全站搜尋">
+                <span class="float-nav__searchIcon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" width="18" height="18">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="M20 20l-3.2-3.2"></path>
+                    </svg>
+                </span>
+                <label for="nav-search-input" class="visually-hidden">輸入關鍵字</label>
+                <input id="nav-search-input" class="float-nav__searchInput js-nav-search-input" type="search"
+                    placeholder="搜尋：預算 / 立委" autocomplete="off" />
+                <button class="float-nav__searchBtn js-nav-search-btn" type="submit" aria-label="搜尋">Go</button>
+            </form>
+        </div>
         <button class="float-nav__menuBtn js-float-nav-menuBtn" type="button" aria-label="開啟頁面切換選單"
             aria-expanded="false" aria-controls="float-nav-seg">
             <span class="float-nav__menuIcon" aria-hidden="true">
@@ -73,7 +96,7 @@
                     <span id="mc-party" class="leg-party-tag js-mc-party"></span>
                 </div>
                 <h3 class="leg-detail-table-title title-cut">刪減案提案紀錄</h3>
-                <div style="overflow-x: auto;">
+                <div class="table-scroll" style="overflow-x: auto;">
                     <table class="proposal-table">
                         <thead>
                             <tr>
@@ -92,7 +115,7 @@
                     style="text-align: right; font-size: 0.85rem; color: #888; font-weight: bold; margin-top: 5px; margin-bottom: 25px;">
                 </div>
                 <h3 class="leg-detail-table-title title-freeze">凍結案提案紀錄</h3>
-                <div style="overflow-x: auto;">
+                <div class="table-scroll" style="overflow-x: auto;">
                     <table class="proposal-table">
                         <thead>
                             <tr>
@@ -127,7 +150,7 @@
             <p class="article-text" style="text-align:center;margin-bottom:1.5rem;">查看各立委對中央政府總預算案的提案紀錄</p>
             <div id="demo-badge-leg" class="demo-mode-badge" style="text-align:center;">⚠️ 測試資料模式</div>
             <div class="pen-filter-row" style="margin-bottom:1.5rem;">
-                <span style="font-weight:600;margin-right:12px;">依黨籍篩選：</span>
+                <div style="font-weight:600;">依黨籍篩選：</div>
                 <div class="filter-btn-group">
                     <button class="filter-tag active" data-party="all" onclick="filterLegislators('all')">全部</button>
                     <button class="filter-tag" data-party="民進黨" onclick="filterLegislators('民進黨')">民進黨</button>
@@ -137,7 +160,7 @@
                 </div>
             </div>
             <div class="pen-filter-row pen-sort-row" style="margin-bottom:1.5rem;">
-                <span class="pen-sort-row__label">排序：</span>
+                <div class="pen-sort-row__label">排序：</div>
                 <div class="pen-sort-row__controls">
                     <select id="leg-sort-by" class="pen-sort-select" aria-label="排序依據" onchange="applyLegislatorFilterAndSort()">
                         <option value="刪減案數">刪減案數</option>

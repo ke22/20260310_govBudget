@@ -48,6 +48,29 @@
             <img class="float-nav__mark" src="./img/cna_logo.svg" alt="" aria-hidden="true" />
             <span class="float-nav__title">總預算觀測站</span>
         </a>
+        <button class="float-nav__iconBtn js-nav-search-toggle" type="button" aria-label="開啟搜尋"
+            aria-expanded="false" aria-controls="nav-search-popover">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.2-3.2"></path>
+            </svg>
+        </button>
+        <div id="nav-search-popover" class="float-nav__popover js-nav-search-popover" hidden>
+            <form class="float-nav__searchForm js-nav-search" role="search" aria-label="全站搜尋">
+                <span class="float-nav__searchIcon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" width="18" height="18">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="M20 20l-3.2-3.2"></path>
+                    </svg>
+                </span>
+                <label for="nav-search-input" class="visually-hidden">輸入關鍵字</label>
+                <input id="nav-search-input" class="float-nav__searchInput js-nav-search-input" type="search"
+                    placeholder="搜尋：預算 / 立委" autocomplete="off" />
+                <button class="float-nav__searchBtn js-nav-search-btn" type="submit" aria-label="搜尋">Go</button>
+            </form>
+        </div>
         <button class="float-nav__menuBtn js-float-nav-menuBtn" type="button" aria-label="開啟頁面切換選單"
             aria-expanded="false" aria-controls="float-nav-seg">
             <span class="float-nav__menuIcon" aria-hidden="true">
@@ -244,35 +267,35 @@
                 <div class="pen-filter-row">
                     <label class="pen-filter-label" for="bp-filter-ministry">部會</label>
                     <select id="bp-filter-ministry" class="ministry-select js-bp-filter-ministry"
-                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
+                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;"
                         onchange="updateBudgetPageReview()">
                         <option value="">請選擇所屬部會</option>
                     </select>
                     <label class="pen-filter-label" for="bp-filter-unit">機關</label>
                     <select id="bp-filter-unit" class="ministry-select js-bp-filter-unit"
-                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;min-width:220px;"
+                        style="border-radius:90px;padding:10px 20px;border:1px solid #ccc;"
                         onchange="updateBudgetPageReview()">
                         <option value="">請選擇主管機關 (全部)</option>
                     </select>
                 </div>
                 <div class="pen-stats-row" style="margin:2rem 0;">
                     <div class="pen-stat-block">
-                        <div class="val" style="color:#0b0b0b;">-</div>
+                        <div class="val js-bp-stat-budget" style="color:#0b0b0b;">-</div>
                         <div class="label">總預算(億)</div>
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:var(--danger-color);">-</div>
+                        <div class="val js-bp-stat-cutpct" style="color:var(--danger-color);">-</div>
                         <div class="label">刪減%</div>
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:var(--freeze-color);">-</div>
+                        <div class="val js-bp-stat-freezepct" style="color:var(--freeze-color);">-</div>
                         <div class="label">凍結%</div>
                     </div>
                     <div class="pen-stat-divider"></div>
                     <div class="pen-stat-block">
-                        <div class="val" style="color:var(--success-color);">-</div>
+                        <div class="val js-bp-stat-passpct" style="color:var(--success-color);">-</div>
                         <div class="label">通過%</div>
                     </div>
                 </div>
@@ -296,16 +319,16 @@
                 <input type="text" id="search-budget-input" class="js-search-budget-input" placeholder="輸入關鍵字 (如: 國防, 潛艦, 凍結...)" oninput="handleSearchBudget(this.value)">
                 <button type="button" onclick="handleSearchBudget(document.querySelector('.js-search-budget-input').value)">搜尋</button>
             </div>
-            <div class="pen-hot-keywords">
+                <div class="pen-hot-keywords" aria-label="熱門關鍵字">
                 <span style="font-weight:600;color:var(--primary-color);">大家都在關心：</span>
-                <span class="pen-keyword-chip"
-                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='國防';handleSearchBudget('國防')">國防</span>
-                <span class="pen-keyword-chip"
-                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='潛艦';handleSearchBudget('潛艦')">潛艦</span>
-                <span class="pen-keyword-chip"
-                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='數位發展';handleSearchBudget('數位發展')">數位發展</span>
-                <span class="pen-keyword-chip"
-                    onclick="this.closest('section').querySelector('.pen-search-bar input').value='社會福利';handleSearchBudget('社會福利')">社會福利</span>
+                    <button type="button" class="pen-keyword-chip"
+                        onclick="this.closest('section').querySelector('.pen-search-bar input').value='國防';handleSearchBudget('國防')">國防</button>
+                    <button type="button" class="pen-keyword-chip"
+                        onclick="this.closest('section').querySelector('.pen-search-bar input').value='潛艦';handleSearchBudget('潛艦')">潛艦</button>
+                    <button type="button" class="pen-keyword-chip"
+                        onclick="this.closest('section').querySelector('.pen-search-bar input').value='數位發展';handleSearchBudget('數位發展')">數位發展</button>
+                    <button type="button" class="pen-keyword-chip"
+                        onclick="this.closest('section').querySelector('.pen-search-bar input').value='社會福利';handleSearchBudget('社會福利')">社會福利</button>
             </div>
             <div class="card card--roomy card-results-budget mb-2_5rem">
                 <div class="js-results-container-budget" id="results-container-budget">
