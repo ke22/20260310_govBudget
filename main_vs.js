@@ -743,8 +743,12 @@ function makeCaucusAvatarDataUri(label, partyOrName) {
     return toSvgDataUri(svg);
 }
 
-function getLegislatorPhotoSrc(name, party) {
+function getLegislatorPhotoSrc(name, party, photoFromData) {
     if (!name) return null;
+    if (photoFromData != null && photoFromData !== '') {
+        const t = String(photoFromData).trim();
+        if (t) return t;
+    }
     if (isCaucusName(name)) {
         const s = ((party || '') + ' ' + name).toString();
         if (s.includes('民進')) return './img/dpp.svg';
@@ -752,7 +756,8 @@ function getLegislatorPhotoSrc(name, party) {
         if (s.includes('民眾')) return './img/tpp.svg';
         return makeCaucusAvatarDataUri(name, party || name);
     }
-    return `./photos/${name}.jpg`;
+    // Local headshots: add files under photos/ as 姓名.jpg and commit (see GitHub Actions deploy).
+    return `./photos/${encodeURIComponent(name)}.jpg`;
 }
 // --- [v172] 工作內容分頁：機關審查結果儀表板 ---
 
@@ -1683,7 +1688,7 @@ function openDetailC(jsonStr) {
     // 3. 設定頭像 (不變)
     const avatarEl = document.querySelector(".js-mc-avatar");
     avatarEl.innerHTML = '';
-    const imgPath = getLegislatorPhotoSrc(data['委員姓名'], party);
+    const imgPath = getLegislatorPhotoSrc(data['委員姓名'], party, data['照片']);
 
     const iconSpan = document.createElement('span');
     iconSpan.className = 'default-icon';
@@ -2083,7 +2088,7 @@ function renderLegislatorGrid(data) {
     data.forEach(row => {
         const name = row['委員姓名'] || '未知委員';
         const party = row['黨籍'] || '無黨籍';
-        const photoPath = getLegislatorPhotoSrc(name, party);
+        const photoPath = getLegislatorPhotoSrc(name, party, row['照片']);
         const imgHtml = photoPath
             ? `<img src="${photoPath}" 
                              style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; object-position: center 25%; display:none;" 

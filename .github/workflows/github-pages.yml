@@ -33,6 +33,7 @@ jobs:
           cp index.html budget.html legislators.html other.html main_vs.js styles_vs.css "$DEST/"
           cp data_page_a.json data_page_b.json data_page_c.json data_page_d.json "$DEST/"
           cp -r vs-modules img "$DEST/"
+          if [ -d photos ]; then cp -r photos "$DEST/"; fi
           cp color-preview.html "$DEST/" 2>/dev/null || true
 
       - name: Upload artifact
