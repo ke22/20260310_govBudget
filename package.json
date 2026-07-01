@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "serve": "http-server . -p 4173 -c-1 --silent",
+    "package:deploy": "node scripts/package-deploy.mjs",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --project=chromium --grep @smoke",
     "test:a11y": "playwright test --grep @a11y",
     "test:lighthouse": "lhci autorun",
-    "test:stress": "k6 run tests/load/stress.js"
+    "test:stress": "node scripts/run-k6.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

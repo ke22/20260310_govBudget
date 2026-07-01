@@ -5,7 +5,8 @@ module.exports = {
     collect: {
       numberOfRuns: 3,
       settings: {
-        preset: 'mobile',
+        emulatedFormFactor: 'mobile',
+        throttlingMethod: 'simulate',
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo']
       },
       url: [

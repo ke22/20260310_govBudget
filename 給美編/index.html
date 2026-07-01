@@ -3056,7 +3056,7 @@
             data.forEach(row => {
                 const name = row['委員姓名'] || '未知委員';
                 const party = row['黨籍'] || '無黨籍';
-                const photoPath = `./photos/${name}.jpg`;
+                const photoPath = `./photos/${name}.webp`;
 
                 let partyClass = 'tag-other';
                 if (party.includes('民進')) partyClass = 'tag-dpp';
@@ -3073,7 +3073,14 @@
                         <img src="${photoPath}" 
                              style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; object-position: center 25%; display:none;" 
                              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
-                             onerror="this.style.display='none';">
+                             onerror="
+                                if (!this.dataset.fallbackTried && this.src.endsWith('.webp')) {
+                                    this.dataset.fallbackTried = '1';
+                                    this.src = this.src.replace(/\\.webp($|\\?)/, '.jpg$1');
+                                    return;
+                                }
+                                this.style.display='none';
+                             ">
                     </div>
                     <div class="leg-name">${name}</div>
                     <span class="leg-party-tag ${partyClass}">${party}</span>

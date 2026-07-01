@@ -1,0 +1,108 @@
+name: quality-gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Optional deployed base URL (e.g. https://example.com). Leave empty to use local server."
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 19 * * *" # daily 03:00 Asia/Taipei
+
+jobs:
+  e2e-and-a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Run a11y smoke tests
+        run: npm run test:a11y
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: e2e-and-a11y
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local server (only when BASE_URL is empty)
+        if: ${{ env.BASE_URL == '' }}
+        run: |
+          echo "Starting local server on :4173"
+          npx http-server . -p 4173 -c-1 --silent &
+          echo "BASE_URL=http://127.0.0.1:4173" >> $GITHUB_ENV
+
+      - name: Run Lighthouse CI
+        run: npm run test:lighthouse
+
+      - name: Upload Lighthouse artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouseci
+          path: .lighthouseci
+          if-no-files-found: ignore
+
+  stress:
+    # Stress tests are heavier; run daily and on manual dispatch only.
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: e2e-and-a11y
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start local server (only when BASE_URL is empty)
+        if: ${{ env.BASE_URL == '' }}
+        run: |
+          npx http-server . -p 4173 -c-1 --silent &
+          echo "BASE_URL=http://127.0.0.1:4173" >> $GITHUB_ENV
+
+      - name: Run k6 stress script
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: tests/load/stress.js
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+

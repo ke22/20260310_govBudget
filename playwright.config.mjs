@@ -40,10 +40,12 @@ export default defineConfig({
     },
     {
       name: 'mobile-chrome',
+      grep: /@smoke/,
       use: { ...devices['Pixel 5'] }
     },
     {
       name: 'mobile-safari',
+      grep: /@smoke/,
       use: { ...devices['iPhone 13'] }
     }
   ]

@@ -1,1 +1,11 @@
 node_modules
+.DS_Store
+
+# Playwright
+playwright-report/
+test-results/
+
+# Lighthouse CI
+.lighthouseci/
+.spectra/
+openspec/.vector-search.db*
